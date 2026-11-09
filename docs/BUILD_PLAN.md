@@ -14,7 +14,8 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 4 Sender screen | Tue eve | **Done Nov 9** | See "Phase 4 scope" | All three outcomes (sent, warned, held) work end to end in the browser |
 | 5 Guardian screens | Wed AM | **Done Nov 9** | See "Phase 5 scope" | Both sides drive all three demo scenarios |
 | 6 Demo prep | Wed early PM | **Done Nov 9** | Seed/reset script, `demo/` messages, cached demo AI replies, fake-mode check, rehearse 3x | Clean run of all 3 scenarios on the real sandbox |
-| 7 Ship | Wed PM to eve | Next | README, secret scan, fresh-clone test, video, Devpost submit | Submission shows as submitted |
+| 6b Upgrades | Tue Nov 10 | Next | See "Phase 6b scope" (agreed Nov 9) | Items 1-4 done and re-rehearsed; 5-6 if time |
+| 7 Ship | Wed | Not started | README, secret scan, fresh-clone test, optional hosted no-keys demo on Render (only if time), video, Devpost submit | Submission shows as submitted |
 | 8 Buffer | Thu AM | — | Fixes only; stop by noon Central | |
 
 **Cut order** if something slips (cut from the top): screenshot analysis, Insights cards, scam-pattern retrieval, AG Grid (use a plain table). If Ask the payer is cut, demo 3 goes straight to "guardian declines".
@@ -44,6 +45,30 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 - Activity: AG Grid Community with status, risk, category, payee, amount, decision, decided by, time; sort and filter.
 - Insights cards: payments held from capture, declined, total value held, top scam categories (needs `GET /stats`).
 
+### Phase 6b scope: upgrades (agreed Nov 9, in priority order; cut from the bottom)
+
+1. **Trademark fix** (15 min): demo scenario 1 says "gift cards", not "Google Play gift cards" (the rules forbid third-party trademarks in the video). Store the new AI reply.
+2. **AG Grid Tier 1, Community only** (2-3 h): cells flash on live status changes, row styling by state (badges stay), evidence tooltips (list rows gain summary + top quotes), columns Top evidence / Checked by / Voids in, preset views (Needs a decision, Stopped, High risk, Flagged by AI, All), date + floating filters, pinned totals row for the filtered view, CSV report export, remembered column state, keyboard (Enter opens review), "Review ->" button on waiting rows. **No approve/decline inside the grid**: decisions stay on the review page where the evidence is.
+3. **Screenshot analysis** (2-3 h): upload a screenshot, Gemini extracts the conversation, the sender confirms the extracted text, then the unchanged engine runs; evidence is grounded in the confirmed text; the guardian sees the image and the text. Demo scenario 3 switches to uploading our own made-up text-message screenshot (pasted text stays as fallback).
+4. **Held-out evaluation** (2.5-3 h): about 60 new cases, never used for tuning, reported separately from the 16-case development set, even if the numbers drop. About 30 scams across about 15 current categories and about 10 adversarial/robustness cases, written in our own words from scam patterns published by the FTC, FBI IC3 and AARP (each case cites its source); about 20 legitimate cases including tricky ones. Plus about 8 real messages from a public labelled SMS dataset, only after verifying its license (with attribution). Stored replies also extend replay mode.
+5. **"Ask your activity"** (2-3 h): a plain-English question becomes an AG Grid filter via Gemini structured output, validated against known columns and operators, shown as chips; filter-only, never acts on money; stored replies for demo questions.
+6. **AG Charts Community on Insights** (1-1.5 h): category chart, held vs captured over time, frequently flagged recipients (small `/stats` addition).
+7. **Polish and wrap-up** (1.5 h): sender safety-tips box on the hold screen; README "three layers" framing (communication, transaction, payment protection) and a note that production would use PayPal Checkout with payer approval and webhooks; tests, screenshot checks, re-rehearsal, runbook and video script, plan and handoff.
+
+The risk engine and the 16-case evaluation stay frozen throughout.
+
+### Reviewed and declined (Nov 9, input from a second AI review)
+
+| Suggestion | Why not now |
+|---|---|
+| Elastic hybrid search | No Elastic prize; adds a service judges must run; only replaces working BM25 retrieval |
+| Render Workflows | Architecture churn for no product gain; Render hosting of the no-keys demo stays an optional Wednesday item |
+| APIMatic | A developer tool, not part of the product |
+| Supabase | SQLite needs no setup for judges |
+| PayPal webhooks | Need a public URL; polling our own backend is fine for the hackathon (README says production would use webhooks) |
+| New behaviour rules (e.g. payment velocity) | The engine is frozen; changing it means re-tuning two days before the deadline |
+| AG Grid Enterprise (AI Toolkit, grouping, master/detail) | Needs a paid license; without one, judges see a watermark |
+
 ## Decisions (agreed Nov 9)
 
 | # | Topic | Decision |
@@ -63,6 +88,10 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 13 | Personas | Sender "Margaret", guardian "Daniel" (her son) |
 | 14 | Hosting | Local only |
 | 15 | Trusted payee flag | Must (seeded data); a UI to manage it stays Medium |
+| 18 | AG Grid prize | Official rules: open to submissions "that use any AG Grid tools"; we enter it with Community features only |
+| 19 | Video trademarks | No third-party brands in demo messages shown on screen (rules) |
+| 20 | Evaluation growth | Held-out set evaluated on the frozen engine, reported separately, no tuning on it |
+| 21 | Hosting | Optional no-keys demo on Render only if Wednesday has time; never host with real keys |
 | 17 | Replay mode | `AI_PROVIDER=replay` serves stored AI replies with no key (for judges and the video); anything not stored falls back to rules with the banner; the review labels it "(stored reply)" |
 | 16 | Evaluation freeze | Tuned once on Nov 9 (prompt `2026-11-10.2`, config `2026-11-10.2`), then frozen. Any change means re-running the eval and saying so |
 

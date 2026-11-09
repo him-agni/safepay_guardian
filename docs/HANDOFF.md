@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, after Phase 6 (Phase 7, ship, next).
+Last updated: Nov 9, 2026, after Phase 6. Next: Phase 6b upgrades on Tue Nov 10 (scope and priority order in BUILD_PLAN.md), then Phase 7 ship on Wed.
 
 ## Where things stand
 
@@ -101,9 +101,13 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - Sender wording comes from the backend's `text.sender`; the frontend never says "authorization voided" on the sender side (`format.ts` has a test for it).
 - Known wart, left on purpose: in the Phase 2 history, deleting `risk/stub.py` landed in the first Phase 2 commit, so a few intermediate commits do not start. The final code is fine.
 
+## Hackathon rules (read Nov 9)
+
+https://paypalaihackathon.devpost.com/rules (WebFetch gets HTTP 403; `curl -A "Mozilla/5.0 ..."` works). Deadline Nov 12, 12:00pm PT. Must use the PayPal sandbox and any AI. Submit a text description, a "Tools" section (which AI and how), a public repo with the license visible in GitHub About (done, MIT), run instructions or a hosted URL, and a public YouTube video under 3 minutes with no third-party trademarks or copyrighted music. Five equally weighted criteria: technical implementation, design, potential impact, innovation, presentation. A project can win one main or honorable-mention prize plus one sponsor prize; the AG Grid prize is open to any AG Grid use. No rule on AI coding assistants.
+
 ## Open questions for Himani
 
-- Hackathon Devpost URL, submission-period start date, judging criteria.
+- None right now. Phase 6b scope, priorities and the held-out evaluation approach were agreed on Nov 9.
 
 ## Progress log
 
@@ -116,3 +120,4 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Nov 9, Phase 4.** Sender screens built and checked in headless Edge at desktop and true 400px phone width against the fake PayPal: send form, sent, warning (Medium, continue or cancel), on hold (High, highlighted evidence, guardian question and reply, countdown, cancel), declined with the guardian's note, rules-only banner. Fixed after review: the rules-built summary repeating the reasons list, four lint warnings.
 - **Nov 9, Phase 5.** `GET /stats` and a scam category on list rows. Guardian queue, review, activity grid (AG Grid, loaded only on that tab so the sender's bundle stays ~256 kB), insights. Checked in headless Edge; fixed an AG Grid missing-module error, oversized badges in the grid, truncated columns, header width, doubled brackets, "Not classified" ranked first, and the question box staying open on final payments. All three demo scenarios driven through the app's API on the real sandbox with Gemini; PayPal's own records matched (VOIDED, CAPTURED, VOIDED).
 - **Nov 9, Phase 6.** Demo seed and reset (`app/demo.py`, voids open sandbox holds first), `demo/scenarios.json` and runbook, rehearsal script, replay AI mode for judges. Rehearsed 3 full runs plus scenario 3 alone on the real sandbox: every level, status and AI check as expected, all 10 authorizations matched on PayPal; 4 Gemini replies stored. Judge mode (fake PayPal + replay, no keys) passed the same rehearsal. Timeout kept at 8 s.
+- **Nov 9, planning.** Read the official rules (project valid; two adjustments: trademark-free demo messages, enter the AG Grid prize). Evaluated a second AI review: most of it was already built; adopted screenshot analysis, the "three layers" framing and the safety-tips box; declined Elastic, Render Workflows, APIMatic, Supabase, webhooks and engine changes. Agreed Phase 6b (AG Grid Tier 1 + 2, screenshot analysis, ~60-case held-out evaluation incl. ~8 real SMS, AG Charts) and an optional no-keys Render demo.
