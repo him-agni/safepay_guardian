@@ -1,34 +1,133 @@
-"""SafePay Guardian FastAPI app."""
+"""SafePay Guardian FastAPI app.
 
-from fastapi import Depends, FastAPI
+Only this backend talks to PayPal and the AI model. The React screens poll it every 3 seconds.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import time
+from contextlib import asynccontextmanager
+from typing import Optional
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import Settings, get_settings
+from .models import CreatePaymentRequest, DecisionRequest, MessageRequest
+from .paypal import PaymentGateway, build_gateway
+from .risk.stub import StubAssessor
+from .risk.types import Assessor
+from .state import PaymentError, PaymentService
 
-app = FastAPI(title="SafePay Guardian", version="0.1.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=get_settings().cors_origin_list,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+log = logging.getLogger("safepay")
 
 
-@app.get("/health")
-def health(settings: Settings = Depends(get_settings)) -> dict:
-    """Report configuration state. Never returns secret values.
+def create_app(
+    settings: Settings | None = None,
+    *,
+    gateway: PaymentGateway | None = None,
+    assessor: Assessor | None = None,
+) -> FastAPI:
+    settings = settings or get_settings()
+    gateway = gateway or build_gateway(settings)
+    assessor = assessor or StubAssessor()
+    service = PaymentService(settings, gateway, assessor)
+    health_cache: dict = {"at": 0.0, "paypal_reachable": None}
 
-    Phase 1 adds a live PayPal token check; Phase 2 adds an AI reachability check.
-    """
-    return {
-        "status": "ok",
-        "sandbox_only": True,
-        "paypal": {"mode": settings.paypal_mode, "configured": settings.paypal_configured},
-        "ai": {
-            "provider": settings.ai_provider,
-            "configured": settings.ai_configured,
-            "mode": "hybrid" if settings.ai_configured else "rules_only",
-        },
-        "hold_timeout_seconds": settings.hold_timeout_seconds,
-    }
+    async def sweeper() -> None:
+        while True:
+            await asyncio.sleep(settings.sweeper_interval_seconds)
+            try:
+                await asyncio.to_thread(service.sweep)
+            except Exception:  # keep the loop alive; the next tick retries
+                log.exception("sweep failed")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        await asyncio.to_thread(service.recover)
+        task = asyncio.create_task(sweeper()) if settings.sweeper_interval_seconds > 0 else None
+        yield
+        if task:
+            task.cancel()
+
+    app = FastAPI(title="SafePay Guardian", version="0.2.0", lifespan=lifespan)
+    app.state.service = service
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.exception_handler(PaymentError)
+    async def payment_error(_: Request, exc: PaymentError) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc.code, "message": exc.message, "payment": exc.payment},
+        )
+
+    @app.get("/health")
+    def health() -> dict:
+        """Configuration state plus a cached PayPal token check. Never returns secret values."""
+        if time.monotonic() - health_cache["at"] > 60:
+            health_cache["paypal_reachable"] = gateway.check()
+            health_cache["at"] = time.monotonic()
+        return {
+            "status": "ok",
+            "sandbox_only": True,
+            "paypal": {
+                "mode": settings.paypal_mode,
+                "configured": settings.paypal_configured,
+                "reachable": health_cache["paypal_reachable"],
+            },
+            "ai": {
+                "provider": settings.ai_provider,
+                "configured": settings.ai_configured,
+                "mode": "hybrid" if settings.ai_configured else "rules_only",
+            },
+            "hold_timeout_seconds": settings.hold_timeout_seconds,
+        }
+
+    @app.post("/payments", status_code=201)
+    def create_payment(body: CreatePaymentRequest) -> dict:
+        """Run the risk engine, authorize on PayPal, then capture, warn or hold by risk level."""
+        return service.create_payment(
+            payee_name=body.payee_name, payee_email=body.payee_email, amount_cents=body.amount_cents,
+            note=body.note, message_text=body.message_text,
+        )
+
+    @app.get("/payments")
+    def list_payments(status: Optional[str] = None, queue: Optional[str] = None, limit: int = 200) -> dict:
+        statuses = [s.strip().upper() for s in status.split(",")] if status else None
+        return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=min(limit, 500))}
+
+    @app.get("/payments/{payment_id}")
+    def get_payment(payment_id: str) -> dict:
+        return service.get_payment(payment_id)
+
+    def _action(name: str, doc: str):
+        def handler(payment_id: str, body: Optional[DecisionRequest] = None) -> dict:
+            return service.act(payment_id, name, note=body.note if body else None)
+
+        handler.__doc__ = doc
+        handler.__name__ = f"{name}_payment"
+        app.post(f"/payments/{{payment_id}}/{name}")(handler)
+
+    _action("confirm", "Sender confirms a medium-risk warning, which captures.")
+    _action("cancel", "Sender cancels a warned or held payment, which voids.")
+    _action("approve", "Guardian approves a held payment, which captures (idempotent).")
+    _action("decline", "Guardian declines a held payment, which voids (idempotent).")
+    _action("retry", "Guardian retries a failed capture or void.")
+
+    @app.post("/payments/{payment_id}/messages", status_code=201)
+    def add_message(payment_id: str, body: MessageRequest) -> dict:
+        return service.add_message(payment_id, body.from_role, body.body)
+
+    return app
+
+
+# Run with: uvicorn app.main:create_app --factory --port 8000
+# (a factory, so importing this module in tests never touches the real database or PayPal)
