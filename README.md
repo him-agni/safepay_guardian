@@ -74,7 +74,20 @@ The smoke script runs every lane (auto-capture, warn then confirm, hold then app
 | `POST /payments/{id}/decline` | Guardian declines a held payment (voids, idempotent) |
 | `POST /payments/{id}/retry` | Guardian retries a failed capture or void |
 | `POST /payments/{id}/messages` | Add a sender or guardian message |
+| `POST /assess` | Run the risk engine on a message (and optional amount and payee) without creating a payment |
 | `GET /health` | PayPal and AI configuration and reachability |
+
+## Risk engine
+
+The engine returns Low, Medium or High. The AI is never the sole decision-maker: rules set a floor, the AI adds context, and a human decides what is held.
+
+1. **Rules** (`app/risk/rules.py`): gift or prepaid cards and crypto, wire or "safe account" requests are hard rules (High on their own). Urgency, secrecy, authority threats, a new payee, an unusual amount, a request to mark the payee as trusted, a "new phone number" story, and a new payee with no explanation add weights.
+2. **AI** (`app/risk/ai.py`, Gemini 2.5 Flash): one call with a strict JSON schema returns a category, indicators with quoted evidence, confidence and a recommended action. The pasted message is treated as untrusted data inside a delimiter it cannot close, and instructions inside it are reported as manipulation.
+3. **Evidence grounding**: every quote the AI returns must literally appear in the message, note, payee or amount (after normalising case, quotes, dashes and spaces). Anything else is dropped and logged, never shown.
+4. **Aggregation** (`app/risk/engine.py`): final level = the highest of the hard-rule level, the level of the combined heuristic score, and the AI's floor (which needs at least one grounded indicator). The AI can raise a level but never lower one. A trusted payee only removes the "new payee" signal.
+5. **Scam-pattern retrieval** (`app/risk/patterns.py`): 25 known scam scripts, written for this project, ranked with BM25 and shown as "similar known pattern". They inform the AI but add no weight.
+
+If the AI is not configured, times out, hits a rate limit or returns invalid JSON, the engine runs on rules alone and the response says "AI check unavailable, rules only". Hard rules still hold dangerous payments. Every number lives in `app/risk/config.py`.
 
 ## Payment safety
 
