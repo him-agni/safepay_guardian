@@ -1,10 +1,11 @@
 """Every risk-engine number in one place.
 
-Tuned once on Tuesday Nov 10 against the 16 evaluation cases, then frozen (see docs/BUILD_PLAN.md).
+Tuned once against the 16 evaluation cases on Nov 9 (prompt 2026-11-10.2, config 2026-11-10.2), then frozen.
+See docs/BUILD_PLAN.md and eval/history/ for the before-tuning results.
 Changing a value here changes the evaluation results, so re-run eval/run_eval.py after any edit.
 """
 
-CONFIG_VERSION = "2026-11-10.1"
+CONFIG_VERSION = "2026-11-10.2"
 
 # Score -> level. Score is a heuristic sum of indicator weights, capped at 100. It is not a probability.
 MEDIUM_AT = 30

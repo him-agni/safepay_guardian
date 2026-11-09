@@ -24,7 +24,7 @@ from . import config as C
 from .text import ground, payment_fields
 from .types import PaymentContext
 
-PROMPT_VERSION = "2026-11-10.1"
+PROMPT_VERSION = "2026-11-10.2"
 
 CATEGORIES = (
     "government_impersonation", "bank_impersonation", "tech_support", "grandparent", "family_impersonation",
@@ -94,10 +94,15 @@ a payment that does not fit the story in the message (payment_matches_message = 
 4. Ordinary payments are common. A new contractor with an invoice, a neighbour paid for yard work, a relative's \
 birthday gift, a regular bill: do not escalate just because the payee is new or the amount is larger than usual. \
 Recommend "warn" at most for unusual but plausible payments with no manipulation.
-5. recommended_action: "proceed" if nothing is suspicious; "warn" if the sender should double-check; \
+5. If the payee is marked trusted and has been paid before, the money goes to that known person's account, so a \
+message that sounds like that same person cannot redirect the money: do not report impersonation of the payee. \
+Still report pressure (urgency) and recommend "warn" for it. Recommend "guardian_review" only if there are other \
+strong signals, such as gift cards, crypto or wire, secrecy, a request to pay a different account, or changed contact \
+details.
+6. recommended_action: "proceed" if nothing is suspicious; "warn" if the sender should double-check; \
 "guardian_review" if this looks like a scam or manipulation and a trusted person should decide.
-6. summary: one or two short, calm sentences for the sender, with no jargon.
-7. Similar known scam patterns are listed for context only. They are not evidence and must not be quoted."""
+7. summary: one or two short, calm sentences for the sender, with no jargon.
+8. Similar known scam patterns are listed for context only. They are not evidence and must not be quoted."""
 
 
 def _nonce(ctx: PaymentContext) -> str:

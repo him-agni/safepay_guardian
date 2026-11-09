@@ -1,11 +1,13 @@
 """Step 4: aggregation. Rules set a floor, the AI adds context, and a human decides what is held.
 
 final level = the highest of:
-  * high, if any hard rule fired (gift cards, crypto, wire, "safe account")
-  * the level of the combined score (rule weights + grounded AI indicator weights; one weight per type)
+  * the rules level: high if any hard rule fired (gift cards, crypto, wire, "safe account"), otherwise the
+    level of the rule score
+  * the level of the combined score (rule weights + grounded AI indicator weights; one weight per type),
+    capped at the AI's own recommended level
   * the AI floor: guardian_review with medium/high confidence and at least one grounded indicator -> high;
     warn with at least one grounded indicator -> medium
-The AI can raise a level. It can never lower one: there is no path where AI output reduces the score.
+The AI can raise a level, at most to what it recommends. It can never lower one: the rules level is never capped.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from . import ai as ai_mod
 from . import config as C
 from . import patterns as pattern_mod
 from . import rules as rules_mod
-from .types import Level, PaymentContext, RiskResult, max_level
+from .types import LEVEL_ORDER, Level, PaymentContext, RiskResult, max_level
 
 
 def score_level(score: int) -> Level:
@@ -73,7 +75,13 @@ class HybridEngine:
                 elif analysis["recommended_action"] in ("warn", "guardian_review"):
                     ai_floor = "medium"
 
-        level = max_level(rules_level, score_level(score), ai_floor)
+        # AI indicator weights may raise the level only as far as the AI's own recommendation: a model that says
+        # "warn" cannot push a payment to High through its quote weights alone. Rules are never capped.
+        combined_level = score_level(score)
+        ai_cap: Level = ai_only_level if ai_only_level is not None else "low"
+        if LEVEL_ORDER[combined_level] > LEVEL_ORDER[ai_cap]:
+            combined_level = ai_cap
+        level = max_level(rules_level, combined_level, ai_floor)
         mode = "hybrid" if outcome.ok else "rules_only"
         summary = self._summary(level, indicators, outcome, ai_only_level)
 

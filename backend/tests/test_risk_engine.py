@@ -177,6 +177,21 @@ def test_same_indicator_type_from_rule_and_ai_counts_once():
     assert hybrid.score == rules_only.score == 25
 
 
+def test_ai_quote_weights_cannot_push_past_the_ais_own_recommendation():
+    # Rules: urgency 25 + amount 20 = 45 (medium). The AI says "warn" but adds a 30-point indicator.
+    msg = "Can you send it now ASAP please"
+    ai = FakeAI(reply("warn", "medium", [("impersonation", "Can you send it")]))
+    r = HybridEngine(ai).assess(ctx(msg, amount=50000, trusted=True))
+    assert r.score >= 60  # the raw sum would be High...
+    assert r.level == "medium"  # ...but the AI only recommended a warning
+
+
+def test_capping_never_lowers_a_rule_level():
+    ai = FakeAI(reply("proceed", "high", [("urgency", "within 30 minutes")]))
+    r = HybridEngine(ai).assess(ctx("Pay with gift cards within 30 minutes"))
+    assert r.components["rules_level"] == "high" and r.level == "high"
+
+
 def test_ai_warn_with_grounded_evidence_sets_a_medium_floor():
     ai = FakeAI(reply("warn", "low", [("payment_mismatch", "rent deposit")]))
     r = HybridEngine(ai).assess(ctx("Can you send the rent deposit"))
