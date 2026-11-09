@@ -57,6 +57,7 @@ export interface Risk {
   dropped_evidence: { type: string; evidence: string; reason: string }[]
   model: string | null
   latency_ms: number | null
+  components?: { ai_cached?: boolean; [key: string]: unknown }
 }
 
 export interface PaymentEvent {

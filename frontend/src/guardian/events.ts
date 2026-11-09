@@ -60,6 +60,8 @@ export function describeEvent(e: PaymentEvent): string {
       return `${str(d.action)} rejected: the payment was already ${str(d.status)}`
     case 'message.added':
       return 'Message added to the thread'
+    case 'seed.history':
+      return 'Past payment added as demo history (no PayPal call)'
     case 'recovery.resumed':
       return `Resumed after a restart (was ${str(d.status)})`
     default:

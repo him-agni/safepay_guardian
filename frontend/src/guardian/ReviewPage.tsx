@@ -278,7 +278,8 @@ function Evidence({ p }: { p: Payment }) {
         Every quoted word above appears in the message or payment.
         {dropped > 0 &&
           ` ${dropped} AI quote${dropped === 1 ? ' was' : 's were'} dropped because ${dropped === 1 ? 'it does' : 'they do'} not appear in the message.`}
-        {risk.mode === 'hybrid' && risk.model && ` Checked by rules and ${risk.model}.`}
+        {risk.mode === 'hybrid' && risk.model &&
+          ` Checked by rules and ${risk.model}${risk.components?.ai_cached ? ' (stored reply)' : ''}.`}
         {risk.mode === 'rules_only' && ' Checked by rules only.'}
       </p>
     </section>

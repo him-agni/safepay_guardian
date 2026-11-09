@@ -120,6 +120,7 @@ export function guardianStatusWord(p: Payment): string {
 
 /** What happened, in one word or two, for the activity grid (the "Decided by" column says who). */
 export function decisionWord(p: Payment): string {
+  if (p.is_seed) return 'Past payment'
   if (p.status === 'CAPTURED') {
     if (p.decided_by === 'guardian') return 'Approved'
     if (p.decided_by === 'sender') return 'Confirmed'
@@ -134,6 +135,7 @@ export function decisionWord(p: Payment): string {
 }
 
 export function decidedByWord(p: Payment): string {
+  if (p.is_seed) return '—'
   if (p.decided_by === 'guardian') return 'Guardian'
   if (p.decided_by === 'sender') return 'Sender'
   if (p.decided_by === 'system') return 'System (timeout)'
