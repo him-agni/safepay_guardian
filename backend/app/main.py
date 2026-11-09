@@ -16,9 +16,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import Settings, get_settings
-from .models import CreatePaymentRequest, DecisionRequest, MessageRequest
+from .models import AssessRequest, CreatePaymentRequest, DecisionRequest, MessageRequest
 from .paypal import PaymentGateway, build_gateway
-from .risk.stub import StubAssessor
+from .risk.engine import build_assessor
 from .risk.types import Assessor
 from .state import PaymentError, PaymentService
 
@@ -33,9 +33,10 @@ def create_app(
 ) -> FastAPI:
     settings = settings or get_settings()
     gateway = gateway or build_gateway(settings)
-    assessor = assessor or StubAssessor()
+    assessor = assessor or build_assessor(settings)
     service = PaymentService(settings, gateway, assessor)
-    health_cache: dict = {"at": 0.0, "paypal_reachable": None}
+    health_cache: dict = {"at": 0.0, "paypal_reachable": None, "ai_reachable": None}
+    ai_provider = getattr(assessor, "provider", None)
 
     async def sweeper() -> None:
         while True:
@@ -71,9 +72,10 @@ def create_app(
 
     @app.get("/health")
     def health() -> dict:
-        """Configuration state plus a cached PayPal token check. Never returns secret values."""
+        """Configuration state plus cached PayPal and AI reachability checks. Never returns secret values."""
         if time.monotonic() - health_cache["at"] > 60:
             health_cache["paypal_reachable"] = gateway.check()
+            health_cache["ai_reachable"] = ai_provider.check() if ai_provider is not None else False
             health_cache["at"] = time.monotonic()
         return {
             "status": "ok",
@@ -85,8 +87,10 @@ def create_app(
             },
             "ai": {
                 "provider": settings.ai_provider,
-                "configured": settings.ai_configured,
-                "mode": "hybrid" if settings.ai_configured else "rules_only",
+                "configured": ai_provider is not None,
+                "model": getattr(ai_provider, "model", None),
+                "reachable": health_cache["ai_reachable"],
+                "mode": "hybrid" if ai_provider is not None and health_cache["ai_reachable"] else "rules_only",
             },
             "hold_timeout_seconds": settings.hold_timeout_seconds,
         }
@@ -121,6 +125,12 @@ def create_app(
     _action("approve", "Guardian approves a held payment, which captures (idempotent).")
     _action("decline", "Guardian declines a held payment, which voids (idempotent).")
     _action("retry", "Guardian retries a failed capture or void.")
+
+    @app.post("/assess")
+    def assess(body: AssessRequest) -> dict:
+        """Run the risk engine on a message (and optional payment details) without creating a payment."""
+        return service.assess_only(message_text=body.message_text, note=body.note,
+                                   amount_cents=body.amount_cents, payee_name=body.payee_name)
 
     @app.post("/payments/{payment_id}/messages", status_code=201)
     def add_message(payment_id: str, body: MessageRequest) -> dict:

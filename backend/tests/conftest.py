@@ -10,8 +10,19 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.paypal import FakePayPal
-from app.risk.stub import FixedAssessor
+from app.risk.types import PaymentContext, RiskResult
 from app.state import PaymentService
+
+
+class FixedAssessor:
+    """Risk engine double for payment-flow tests: always returns the configured level."""
+
+    def __init__(self, level: str = "low") -> None:
+        self.level = level
+
+    def assess(self, ctx: PaymentContext) -> RiskResult:
+        score = {"low": 0, "medium": 40, "high": 80}[self.level]
+        return RiskResult(self.level, score, "rules_only", f"Fixed {self.level} risk for tests.")  # type: ignore[arg-type]
 
 
 def make_settings(tmp_path, **overrides) -> Settings:

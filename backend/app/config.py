@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-2.5-flash"
     ai_timeout_seconds: float = 8.0
+    ai_cache_dir: str = ""  # e.g. "eval/cache": reuse stored AI replies for identical prompts
 
     # Holds and background work
     hold_timeout_seconds: int = 86400

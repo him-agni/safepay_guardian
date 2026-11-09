@@ -180,6 +180,9 @@ class PaymentService:
         self.db_path = settings.database_file
         self._sweep_lock = threading.Lock()
         db.migrate(self.db_path)
+        from .risk.patterns import PATTERNS
+
+        db.sync_scam_patterns(self.db_path, [(p.category, p.title, p.text) for p in PATTERNS])
 
     # ---------------------------------------------------------------- db helpers
 
@@ -244,35 +247,9 @@ class PaymentService:
         self, *, payee_name: str, amount_cents: int, note: str = "", message_text: str = "",
         payee_email: str | None = None, currency: str = "USD",
     ) -> dict:
-        name = " ".join(payee_name.split())
-        now = db.utcnow()
-        with self._conn() as conn:
-            with db.transaction(conn):
-                payee = conn.execute(
-                    "SELECT * FROM payees WHERE sender_id = ? AND name_key = ?", (db.SENDER_ID, name.lower())
-                ).fetchone()
-                if payee is None:
-                    cur = conn.execute(
-                        "INSERT INTO payees (sender_id, name, name_key, email, first_seen_at) VALUES (?, ?, ?, ?, ?)",
-                        (db.SENDER_ID, name, name.lower(), payee_email, db.iso(now)),
-                    )
-                    payee = conn.execute("SELECT * FROM payees WHERE id = ?", (cur.lastrowid,)).fetchone()
-            history = [
-                r["amount_cents"]
-                for r in conn.execute(
-                    "SELECT amount_cents FROM payments WHERE sender_id = ? AND status = 'CAPTURED'", (db.SENDER_ID,)
-                )
-            ]
-            payee_count = conn.execute(
-                "SELECT COUNT(*) FROM payments WHERE payee_id = ? AND status = 'CAPTURED'", (payee["id"],)
-            ).fetchone()[0]
-
-        ctx = PaymentContext(
-            amount_cents=amount_cents, currency=currency, payee_name=name,
-            payee_is_new=payee_count == 0 and not payee["trusted"], payee_trusted=bool(payee["trusted"]),
-            note=note, message_text=message_text, history_amounts_cents=history,
-            payee_history_count=payee_count, payee_spending_limit_cents=payee["spending_limit_cents"],
-        )
+        payee, ctx = self._build_context(payee_name, amount_cents, note, message_text, currency=currency,
+                                         payee_email=payee_email, create_payee=True)
+        name = ctx.payee_name
         risk = self.assessor.assess(ctx)  # outside any transaction: the AI call can take seconds
 
         payment_id = uuid.uuid4().hex
@@ -292,23 +269,77 @@ class PaymentService:
             })
             db.add_event(conn, payment_id, "system", "risk.assessed", {
                 "level": risk.level, "score": risk.score, "mode": risk.mode,
-                "indicators": len(risk.indicators), "dropped_evidence": len(risk.dropped_evidence),
-                "ai_error": risk.ai_error,
+                "indicators": [i["type"] for i in risk.indicators],
+                "dropped_evidence": risk.dropped_evidence,  # AI quotes not found in the input: logged, not shown
+                "patterns": [p["id"] for p in risk.patterns],
+                "ai_error": risk.ai_error, "model": risk.model, "latency_ms": risk.latency_ms,
             })
 
         self._authorize_and_route(payment_id)
         return self.get_payment(payment_id)
 
+    def _build_context(
+        self, payee_name: str, amount_cents: int, note: str, message_text: str, *, currency: str = "USD",
+        payee_email: str | None = None, create_payee: bool,
+    ) -> tuple[sqlite3.Row | None, PaymentContext]:
+        """Look up the payee and the sender's history, creating the payee row only for real payments."""
+        name = " ".join(payee_name.split())
+        with self._conn() as conn:
+            payee = None
+            if name:
+                with db.transaction(conn):
+                    payee = conn.execute(
+                        "SELECT * FROM payees WHERE sender_id = ? AND name_key = ?", (db.SENDER_ID, name.lower())
+                    ).fetchone()
+                    if payee is None and create_payee:
+                        cur = conn.execute(
+                            "INSERT INTO payees (sender_id, name, name_key, email, first_seen_at) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (db.SENDER_ID, name, name.lower(), payee_email, db.iso(db.utcnow())),
+                        )
+                        payee = conn.execute("SELECT * FROM payees WHERE id = ?", (cur.lastrowid,)).fetchone()
+            history = [
+                r["amount_cents"]
+                for r in conn.execute(
+                    "SELECT amount_cents FROM payments WHERE sender_id = ? AND status = 'CAPTURED'", (db.SENDER_ID,)
+                )
+            ]
+            payee_count = 0
+            if payee is not None:
+                payee_count = conn.execute(
+                    "SELECT COUNT(*) FROM payments WHERE payee_id = ? AND status = 'CAPTURED'", (payee["id"],)
+                ).fetchone()[0]
+        trusted = bool(payee["trusted"]) if payee is not None else False
+        ctx = PaymentContext(
+            amount_cents=amount_cents, currency=currency, payee_name=name,
+            payee_is_new=bool(name) and payee_count == 0 and not trusted, payee_trusted=trusted,
+            note=note, message_text=message_text, history_amounts_cents=history,
+            payee_history_count=payee_count,
+            payee_spending_limit_cents=payee["spending_limit_cents"] if payee is not None else None,
+        )
+        return payee, ctx
+
+    def assess_only(self, *, message_text: str, note: str = "", amount_cents: int = 0,
+                    payee_name: str = "") -> dict:
+        """Run the risk engine without creating a payment (demo box and evaluation)."""
+        _, ctx = self._build_context(payee_name, amount_cents, note, message_text, create_payee=False)
+        risk = self.assessor.assess(ctx)
+        self._event(None, "system", "risk.assessed_text_only", {
+            "level": risk.level, "mode": risk.mode, "dropped_evidence": risk.dropped_evidence,
+        })
+        return _serialize_risk(risk)
+
     @staticmethod
     def _insert_assessment(conn: sqlite3.Connection, payment_id: str | None, risk: RiskResult) -> None:
         conn.execute(
             """INSERT INTO assessments (payment_id, mode, final_level, score, summary, rules_json, ai_json,
-                   dropped_evidence_json, patterns_json, evidence_json, ai_error, model, latency_ms, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   dropped_evidence_json, patterns_json, evidence_json, ai_error, components_json, model,
+                   latency_ms, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (payment_id, risk.mode, risk.level, risk.score, risk.summary, json.dumps(risk.rules),
              json.dumps(risk.ai) if risk.ai is not None else None, json.dumps(risk.dropped_evidence),
              json.dumps(risk.patterns), json.dumps({"indicators": risk.indicators, "spans": risk.evidence_spans}),
-             risk.ai_error, risk.model, risk.latency_ms, db.iso(db.utcnow())),
+             risk.ai_error, json.dumps(risk.components), risk.model, risk.latency_ms, db.iso(db.utcnow())),
         )
 
     def _authorize_and_route(self, payment_id: str) -> None:
@@ -680,24 +711,44 @@ def _serialize(row: sqlite3.Row) -> dict:
     }
 
 
+def _risk_dict(level, score, mode, summary, indicators, spans, ai, ai_error, dropped, patterns, components,
+               model, latency_ms) -> dict:
+    return {
+        "level": level,
+        "score": score,
+        "score_label": "heuristic score (not a probability)",
+        "mode": mode,
+        "ai_unavailable": mode == "rules_only",
+        "ai_unavailable_text": "AI check unavailable, rules only" if mode == "rules_only" else None,
+        "summary": summary,
+        "category": (ai or {}).get("category"),
+        "indicators": indicators,
+        "evidence_spans": spans,
+        "ai": ai,
+        "ai_error": ai_error,
+        "dropped_evidence": dropped,
+        "patterns": patterns,
+        "components": components,
+        "model": model,
+        "latency_ms": latency_ms,
+    }
+
+
+def _serialize_risk(risk: RiskResult) -> dict:
+    return _risk_dict(risk.level, risk.score, risk.mode, risk.summary, risk.indicators, risk.evidence_spans,
+                      risk.ai, risk.ai_error, risk.dropped_evidence, risk.patterns, risk.components, risk.model,
+                      risk.latency_ms)
+
+
 def _serialize_assessment(row: sqlite3.Row | None) -> dict | None:
     if row is None:
         return None
     evidence = json.loads(row["evidence_json"] or "{}")
     if isinstance(evidence, list):
         evidence = {"indicators": evidence, "spans": []}
-    return {
-        "level": row["final_level"],
-        "score": row["score"],
-        "mode": row["mode"],
-        "summary": row["summary"],
-        "indicators": evidence.get("indicators", []),
-        "evidence_spans": evidence.get("spans", []),
-        "rules": json.loads(row["rules_json"] or "[]"),
-        "ai": json.loads(row["ai_json"]) if row["ai_json"] else None,
-        "ai_error": row["ai_error"],
-        "dropped_evidence": json.loads(row["dropped_evidence_json"] or "[]"),
-        "patterns": json.loads(row["patterns_json"] or "[]"),
-        "model": row["model"],
-        "latency_ms": row["latency_ms"],
-    }
+    return _risk_dict(
+        row["final_level"], row["score"], row["mode"], row["summary"], evidence.get("indicators", []),
+        evidence.get("spans", []), json.loads(row["ai_json"]) if row["ai_json"] else None, row["ai_error"],
+        json.loads(row["dropped_evidence_json"] or "[]"), json.loads(row["patterns_json"] or "[]"),
+        json.loads(row["components_json"] or "{}"), row["model"], row["latency_ms"],
+    )

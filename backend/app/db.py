@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS assessments (
     patterns_json          TEXT NOT NULL DEFAULT '[]',
     evidence_json          TEXT NOT NULL DEFAULT '[]',
     ai_error               TEXT,
+    components_json        TEXT NOT NULL DEFAULT '{}',
     model                  TEXT,
     latency_ms             INTEGER,
     created_at             TEXT NOT NULL
@@ -154,11 +155,32 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
         conn.execute("COMMIT")
 
 
+# Columns added after a table was first created: (table, column, definition).
+ADDED_COLUMNS = [
+    ("assessments", "components_json", "TEXT NOT NULL DEFAULT '{}'"),
+]
+
+
 def migrate(path: Path) -> None:
     conn = connect(path)
     try:
         conn.executescript(SCHEMA)
+        for table, column, definition in ADDED_COLUMNS:
+            existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+            if column not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
         conn.executemany("INSERT OR IGNORE INTO users (id, name, role) VALUES (?, ?, ?)", SEED_USERS)
+    finally:
+        conn.close()
+
+
+def sync_scam_patterns(path: Path, patterns: list[tuple[str, str, str]]) -> None:
+    """Mirror the in-code pattern library into the scam_patterns table (category, title, text)."""
+    conn = connect(path)
+    try:
+        with transaction(conn):
+            conn.execute("DELETE FROM scam_patterns")
+            conn.executemany("INSERT INTO scam_patterns (category, title, template_text) VALUES (?, ?, ?)", patterns)
     finally:
         conn.close()
 

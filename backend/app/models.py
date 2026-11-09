@@ -36,6 +36,17 @@ class CreatePaymentRequest(BaseModel):
         return int((self.amount * 100).to_integral_value())
 
 
+class AssessRequest(BaseModel):
+    message_text: str = Field(default="", max_length=5000)
+    note: str = Field(default="", max_length=500)
+    amount: Optional[Decimal] = Field(default=None, ge=0, le=MAX_AMOUNT)
+    payee_name: str = Field(default="", max_length=80)
+
+    @property
+    def amount_cents(self) -> int:
+        return int((self.amount * 100).to_integral_value()) if self.amount is not None else 0
+
+
 class DecisionRequest(BaseModel):
     note: Optional[str] = Field(default=None, max_length=500)
 

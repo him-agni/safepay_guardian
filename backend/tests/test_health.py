@@ -2,12 +2,15 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.paypal import FakePayPal
+from app.risk.engine import HybridEngine
 
 from .conftest import make_settings
 
 
 def _client(tmp_path, **overrides) -> TestClient:
-    return TestClient(create_app(make_settings(tmp_path, **overrides), gateway=FakePayPal()))
+    # No AI provider: /health must never call Google during tests.
+    return TestClient(create_app(make_settings(tmp_path, **overrides), gateway=FakePayPal(),
+                                 assessor=HybridEngine(None)))
 
 
 def test_health_defaults_to_fake_paypal_and_rules_only(tmp_path):

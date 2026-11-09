@@ -8,7 +8,7 @@ Start the backend first (sandbox mode, short hold timeout), e.g. in Git Bash:
 Then from the repo root:
   .venv/Scripts/python scripts/api_smoke.py            # add --skip-timeout to skip the expiry wait
 
-The Phase 1 stub risk engine is used: "gift card" in the message = high, "asap" = medium.
+Uses the real risk engine: gift cards are a hard rule (high), "asap" plus a new payee is medium.
 """
 
 from __future__ import annotations
