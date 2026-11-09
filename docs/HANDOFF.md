@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, after Phase 3 (Phase 4 starting).
+Last updated: Nov 9, 2026, after Phase 4 (Phase 5 next).
 
 ## Where things stand
 
@@ -12,9 +12,9 @@ Last updated: Nov 9, 2026, after Phase 3 (Phase 4 starting).
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
 | Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 82 pytest tests, all passing, all offline |
-| Frontend | Not built yet (Phase 4 next) |
-| Not built yet | `GET /stats`, seed/reset script, `demo/` messages, guardian screens, AG Grid, Insights, video, Devpost submission |
+| Tests | 82 pytest tests and 13 Vitest unit tests, all passing, all offline |
+| Frontend | Sender side done (React 19 + Vite 8 + TypeScript): send form, sent / warning / on-hold / declined screens with highlighted evidence, messages thread, recent payments, AI-unavailable banner. Guardian side is a read-only queue placeholder (Phase 5) |
+| Not built yet | Guardian review screen (approve, decline, retry, ask the payer), `GET /stats`, AG Grid activity, Insights, seed/reset script, `demo/` messages, video, Devpost submission |
 
 ## Run and check
 
@@ -35,6 +35,13 @@ cd backend && HOLD_TIMEOUT_SECONDS=20 SWEEPER_INTERVAL_SECONDS=2 DATABASE_PATH=d
   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
 .venv/Scripts/python scripts/api_smoke.py
 
+# Frontend (second terminal; backend must be running on :8000)
+cd frontend && npm install && npm run dev        # http://localhost:5173
+cd frontend && npm test && npm run build && npx oxlint src
+
+# UI check without PayPal or Gemini quota: fake PayPal, rules only, separate database
+cd backend && PAYPAL_MODE=fake AI_PROVIDER=none DATABASE_PATH=data/ui.db   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
+
 # Evaluation: offline from committed replies, or live
 PYTHONIOENCODING=utf-8 .venv/Scripts/python eval/run_eval.py --cached
 PYTHONIOENCODING=utf-8 .venv/Scripts/python -u eval/run_eval.py --repeat 3 --sleep 4 --timeout 25
@@ -54,6 +61,7 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 | `backend/tests/` | Payment safety, PayPal client, risk engine, eval-set tests |
 | `eval/` | `cases.json`, `run_eval.py`, `results.md/json`, `cache/` (committed AI replies), `history/` (before-tuning run) |
 | `scripts/` | `sandbox_gate.py`, `api_smoke.py` |
+| `frontend/src/` | `App.tsx` (shell, header, hash routes `#/send`, `#/send/{id}`, `#/guardian`), `api.ts` (only network code), `types.ts`, `hooks.ts` (3 s polling, countdown, hash router), `highlight.ts` (evidence segments), `format.ts` (wording helpers), `components.tsx` (risk badge, AI banner, highlighted message, messages thread), `sender/`, `guardian/` |
 
 ## API shape the frontend relies on
 
@@ -73,6 +81,8 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Evaluation is frozen** (prompt `2026-11-10.2`, config `2026-11-10.2`). Changing `risk/config.py`, the prompt or the rules changes the results: re-run the eval and record it.
 - Start uvicorn with `--factory`. Importing `app.main` never touches the real database.
 - SQLite files live in `data/` (git-ignored). Payment ids are UUIDs, so PayPal request ids never repeat after a reset.
+- **Screenshots for checking the UI:** Edge headless works (`msedge --headless=new --screenshot=... --virtual-time-budget=6000`), but give each run its own `--user-data-dir` (runs sharing one attach to the first and are dropped), wait for the file (Edge returns before writing it), and note headless windows have a minimum width of about 500px: for a true 400px phone view, load the app inside a 400px iframe served from the Vite dev server (a `file://` wrapper does not load).
+- Sender wording comes from the backend's `text.sender`; the frontend never says "authorization voided" on the sender side (`format.ts` has a test for it).
 - Known wart, left on purpose: in the Phase 2 history, deleting `risk/stub.py` landed in the first Phase 2 commit, so a few intermediate commits do not start. The final code is fine.
 
 ## Open questions for Himani
@@ -87,3 +97,5 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Nov 9, Phase 1.** State machine with claims, fake PayPal with fault injection, 49 tests (mutation-checked), sandbox smoke test passed with every authorization cross-checked on PayPal.
 - **Nov 9, Phase 2.** Hybrid engine. D1, D2, D3 High with the AI (D3 is only Medium on rules). The Phase 1 placeholder engine was removed.
 - **Nov 9, Phase 3.** 16-case evaluation. Switched to `gemini-3.1-flash-lite` after the 2.5-flash quota ran out. First run 15/16 (A2 miss); one tuning round (trusted-payee prompt rule, AI weights capped at the AI's own recommendation); frozen at 16/16, consistent over 3 runs. 82 tests.
+- **Nov 9, docs.** Plan and handoff split into `BUILD_PLAN.md` and `HANDOFF.md`.
+- **Nov 9, Phase 4.** Sender screens built and checked in headless Edge at desktop and true 400px phone width against the fake PayPal: send form, sent, warning (Medium, continue or cancel), on hold (High, highlighted evidence, guardian question and reply, countdown, cancel), declined with the guardian's note, rules-only banner. Fixed after review: the rules-built summary repeating the reasons list, four lint warnings.

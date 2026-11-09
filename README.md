@@ -41,6 +41,20 @@ cd backend
 ../.venv/Scripts/python -m pytest -q     # or ../.venv/bin/python on macOS/Linux
 ```
 
+## Run the web app
+
+Requires Node 20 or newer. Start the backend first (above), then in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
+```
+
+The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
+
+Frontend checks: `npm test` (unit tests), `npm run build` (type-check and production build), `npx oxlint src` (lint).
+
 ### Sandbox checks
 
 With PayPal sandbox values in `.env` (`PAYPAL_MODE=sandbox`):

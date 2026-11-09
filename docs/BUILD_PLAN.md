@@ -11,8 +11,8 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 1 Payment core | Mon | **Done Nov 9** | SQLite schema, PayPal gateway (real + fake), state machine with claims, request ids, audit log, sweeper, payment endpoints | Safety tests pass; real sandbox hold-capture and hold-void through the API |
 | 2 Risk engine | Tue AM | **Done Nov 9** | Rules, AI (schema, prompt, grounding, timeout, fallback), 25 scam patterns + BM25, aggregation, POST /assess | D1, D2, D3 High with AI; rules-only works with no key |
 | 3 Evaluation | Tue PM | **Done Nov 9** | 16 cases, run_eval.py, metrics, ablation, results.md, cache; tune once and freeze | Table prints; scams 100% High; 0/4 legit held |
-| 4 Sender screen | Tue eve | In progress | See "Phase 4 scope" | All three outcomes (sent, warned, held) work end to end in the browser |
-| 5 Guardian screens | Wed AM | Not started | See "Phase 5 scope" | Both sides drive all three demo scenarios |
+| 4 Sender screen | Tue eve | **Done Nov 9** | See "Phase 4 scope" | All three outcomes (sent, warned, held) work end to end in the browser |
+| 5 Guardian screens | Wed AM | Next | See "Phase 5 scope" | Both sides drive all three demo scenarios |
 | 6 Demo prep | Wed early PM | Not started | Seed/reset script, `demo/` messages, cached demo AI replies, fake-mode check, rehearse 3x | Clean run of all 3 scenarios on the real sandbox |
 | 7 Ship | Wed PM to eve | Not started | README, secret scan, fresh-clone test, video, Devpost submit | Submission shows as submitted |
 | 8 Buffer | Thu AM | — | Fixes only; stop by noon Central | |
