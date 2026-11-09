@@ -148,13 +148,20 @@ class HybridEngine:
 
 
 def build_assessor(settings: Settings) -> HybridEngine:
+    """gemini: live calls (optionally cached). replay: stored replies only, no API key needed. none: rules only."""
     if not settings.ai_configured:
         return HybridEngine(None)
-    provider: ai_mod.AIProvider = ai_mod.GeminiProvider(settings)
+    cache: Path | None = None
     if settings.ai_cache_dir:
         cache = Path(settings.ai_cache_dir)
         if not cache.is_absolute():
             from ..config import REPO_ROOT
+
             cache = REPO_ROOT / cache
+    if settings.ai_provider == "replay":
+        assert cache is not None
+        return HybridEngine(ai_mod.CachingProvider(ai_mod.ReplayOnly(settings.gemini_model), cache, offline=True))
+    provider: ai_mod.AIProvider = ai_mod.GeminiProvider(settings)
+    if cache is not None:
         provider = ai_mod.CachingProvider(provider, cache)
     return HybridEngine(provider)

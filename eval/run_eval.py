@@ -281,7 +281,7 @@ def main() -> None:
     else:
         if args.cached:
             inner = None
-            provider = ai_mod.CachingProvider(_OfflineModel(settings.gemini_model), CACHE_DIR, offline=True)
+            provider = ai_mod.CachingProvider(ai_mod.ReplayOnly(settings.gemini_model), CACHE_DIR, offline=True)
         else:
             if not settings.ai_configured:
                 sys.exit("No AI configured. Set AI_PROVIDER=gemini and GEMINI_API_KEY in .env, or use --cached.")
@@ -315,19 +315,6 @@ def main() -> None:
     print()
     print(md.split("## Evidence per case")[0])
     print(f"Saved {EVAL_DIR / 'results.md'}")
-
-
-class _OfflineModel:
-    """Placeholder provider for --cached: every reply must come from the cache."""
-
-    def __init__(self, model: str) -> None:
-        self.model = model
-
-    def generate(self, system: str, user: str, schema: dict) -> str:
-        raise ai_mod.AIError("network", "offline")
-
-    def check(self) -> bool:
-        return True
 
 
 if __name__ == "__main__":

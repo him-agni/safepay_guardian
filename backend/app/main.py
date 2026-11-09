@@ -90,7 +90,8 @@ def create_app(
                 "configured": ai_provider is not None,
                 "model": getattr(ai_provider, "model", None),
                 "reachable": health_cache["ai_reachable"],
-                "mode": "hybrid" if ai_provider is not None and health_cache["ai_reachable"] else "rules_only",
+                "mode": ("replay" if settings.ai_provider == "replay" else "hybrid")
+                if ai_provider is not None and health_cache["ai_reachable"] else "rules_only",
             },
             "hold_timeout_seconds": settings.hold_timeout_seconds,
         }

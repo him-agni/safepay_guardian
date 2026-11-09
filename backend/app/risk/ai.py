@@ -231,7 +231,7 @@ class CachingProvider:
             return stored["response"]
         self.last_was_cached = False
         if self.offline:
-            raise AIError("network", "offline mode and no cached AI response")
+            raise AIError("network", "no stored AI reply for this message (replay mode)")
         started = time.monotonic()
         text = self.inner.generate(system, user, schema)
         self.last_latency_ms = int((time.monotonic() - started) * 1000)
@@ -242,6 +242,21 @@ class CachingProvider:
 
     def check(self) -> bool:
         return self.offline or self.inner.check()
+
+
+class ReplayOnly:
+    """Inner provider for replay mode: never calls a model. Wrapped in an offline CachingProvider, it serves
+    stored replies for known prompts (the demo messages) and fails for anything else, so the engine falls back
+    to rules and the screen says so."""
+
+    def __init__(self, model: str) -> None:
+        self.model = model
+
+    def generate(self, system: str, user: str, schema: dict) -> str:
+        raise AIError("network", "replay mode: no stored AI reply for this message")
+
+    def check(self) -> bool:
+        return True
 
 
 # --------------------------------------------------------------------------------------

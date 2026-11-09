@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     sandbox_card_name: str = ""
 
     # AI
-    ai_provider: Literal["gemini", "none"] = "none"
+    ai_provider: Literal["gemini", "replay", "none"] = "none"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.1-flash-lite"
     ai_timeout_seconds: float = 8.0
@@ -80,6 +80,8 @@ class Settings(BaseSettings):
 
     @property
     def ai_configured(self) -> bool:
+        if self.ai_provider == "replay":
+            return bool(self.ai_cache_dir)
         return self.ai_provider == "gemini" and bool(self.gemini_api_key.get_secret_value())
 
     @property
