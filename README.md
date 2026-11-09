@@ -17,7 +17,7 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r backend/requirements.txt
 cp .env.example .env          # optional: works with no values set
 cd backend
-../.venv/Scripts/python -m uvicorn app.main:app --port 8000
+../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
 ```
 
 macOS / Linux:
@@ -27,7 +27,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 cp .env.example .env
 cd backend
-../.venv/bin/python -m uvicorn app.main:app --port 8000
+../.venv/bin/python -m uvicorn app.main:create_app --factory --port 8000
 ```
 
 Then open http://localhost:8000/health.
@@ -40,6 +40,50 @@ Run the tests:
 cd backend
 ../.venv/Scripts/python -m pytest -q     # or ../.venv/bin/python on macOS/Linux
 ```
+
+### Sandbox checks
+
+With PayPal sandbox values in `.env` (`PAYPAL_MODE=sandbox`):
+
+```bash
+.venv/Scripts/python scripts/sandbox_gate.py   # raw PayPal calls: create, authorize, capture, void
+```
+
+End-to-end through the API (start the backend with a short hold so the timeout path runs too):
+
+```bash
+cd backend
+HOLD_TIMEOUT_SECONDS=20 SWEEPER_INTERVAL_SECONDS=2 DATABASE_PATH=data/smoke.db \
+  ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
+# in a second terminal, from the repo root:
+.venv/Scripts/python scripts/api_smoke.py
+```
+
+The smoke script runs every lane (auto-capture, warn then confirm, hold then approve, hold then decline, sender cancel, hold timeout) and then reads each authorization back from PayPal to confirm it really is captured or voided.
+
+## API
+
+| Method and path | What it does |
+|---|---|
+| `POST /payments` | Create a payment, run the risk engine, authorize on PayPal, then capture, warn or hold |
+| `GET /payments` | List payments (`?status=HELD,WARNED`, `?queue=guardian`) |
+| `GET /payments/{id}` | One payment with risk assessment, audit events and messages |
+| `POST /payments/{id}/confirm` | Sender confirms a medium-risk warning (captures) |
+| `POST /payments/{id}/cancel` | Sender cancels a warned or held payment (voids) |
+| `POST /payments/{id}/approve` | Guardian approves a held payment (captures, idempotent) |
+| `POST /payments/{id}/decline` | Guardian declines a held payment (voids, idempotent) |
+| `POST /payments/{id}/retry` | Guardian retries a failed capture or void |
+| `POST /payments/{id}/messages` | Add a sender or guardian message |
+| `GET /health` | PayPal and AI configuration and reachability |
+
+## Payment safety
+
+- Every payment uses PayPal `AUTHORIZE` intent, so nothing is captured until the app, the sender or the guardian decides.
+- A decision first claims the payment inside one SQLite write transaction (`CAPTURING` or `VOIDING`), so two decisions cannot both act. A repeated decision returns the first result; an opposite one gets a clear 409.
+- The authorization is read from PayPal before every capture and void.
+- `PayPal-Request-Id` is `{payment_id}-{action}-{attempt}`: network retries reuse it, so a lost response can never cause a second capture.
+- Held and warned payments are voided when the hold times out (24 hours by default). Silence never captures.
+- Unfinished payments are resumed at startup, and every state change and PayPal call is written to the audit log.
 
 ## Honest limits
 

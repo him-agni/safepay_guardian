@@ -17,7 +17,7 @@ The full product spec is the "SafePay Guardian: Full Build Spec" (Nov 9, 2026). 
 | 9 | CAPTURE_FAILED | Timeout voids it if nobody retries |
 | 10 | Frontend | React + Vite + TypeScript |
 | 11 | Python deps | pip + pinned `backend/requirements.txt`, venv at repo root `.venv` |
-| 12 | Repo | This folder is the repo root; GitHub repo `safepay-guardian`; MIT, Himani Agrawal |
+| 12 | Repo | This folder is the repo root; GitHub repo `him-agni/safepay_guardian`; MIT, Himani Agrawal; commits use the GitHub no-reply email |
 | 13 | Personas | Sender "Margaret", guardian "Daniel" (her son) |
 | 15 | Hosting | Local only |
 | — | Trusted payee flag | Promoted to Must (seeded data); a UI to manage it stays Medium |
@@ -86,6 +86,10 @@ Never cut: PayPal flow, safety tests, evidence grounding, evaluation table, vide
 ## Still open
 
 - Hackathon Devpost URL, submission-period start date, judging criteria.
-- Gate scripts from the earlier sandbox test (not in this folder yet).
-- PayPal sandbox client id/secret and test card go into `.env` (Phase 1 sandbox run).
 - Gemini API key goes into `.env` (Phase 2).
+
+## Done
+
+- Nov 9: repo pushed to github.com/him-agni/safepay_guardian; commits authored as "Himani Agrawal" with the GitHub no-reply email.
+- Nov 9: `scripts/sandbox_gate.py` passed against the real sandbox (create + authorize, read, capture, void). The card order returns COMPLETED with the authorization already attached, so the separate authorize call is only a fallback.
+- Nov 9: Phase 1 done. 49 pytest tests pass (fake PayPal + mocked-HTTP client tests). `scripts/api_smoke.py` passed against the real sandbox: all lanes plus timeout, and every authorization cross-checked on PayPal. Payment ids are UUIDs so PayPal request ids never repeat after a database reset. Risk engine is still the Phase 1 stub (`app/risk/stub.py`).
