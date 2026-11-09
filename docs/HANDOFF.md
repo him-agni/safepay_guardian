@@ -2,19 +2,19 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, after Phase 4 (Phase 5 next).
+Last updated: Nov 9, 2026, after Phase 5 (Phase 6, demo prep, next).
 
 ## Where things stand
 
 | Area | State |
 |---|---|
-| Backend (FastAPI) | Complete for the Must list: payments, state machine, sweeper, recovery, audit log, hybrid risk engine, `/assess`, `/health` |
+| Backend (FastAPI) | Complete: payments, state machine, sweeper, recovery, audit log, hybrid risk engine, `/assess`, `/stats`, `/health` |
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
 | Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 82 pytest tests and 13 Vitest unit tests, all passing, all offline |
-| Frontend | Sender side done (React 19 + Vite 8 + TypeScript): send form, sent / warning / on-hold / declined screens with highlighted evidence, messages thread, recent payments, AI-unavailable banner. Guardian side is a read-only queue placeholder (Phase 5) |
-| Not built yet | Guardian review screen (approve, decline, retry, ask the payer), `GET /stats`, AG Grid activity, Insights, seed/reset script, `demo/` messages, video, Devpost submission |
+| Tests | 85 pytest tests and 20 Vitest unit tests, all passing, all offline |
+| Frontend | Both sides done. Sender: send, sent, warning, on hold, declined, messages. Guardian: queue, review (evidence with rule/AI labels, pattern, payee history, hold timer, approve with confirm step, decline with note, retry, ask the payer, audit log), Activity (AG Grid, lazy-loaded), Insights (stat tiles, top categories) |
+| Not built yet | Seed/reset script with sender history and a trusted payee, `demo/` messages, cached demo AI replies, rehearsal, video, Devpost submission. Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
 
 ## Run and check
 
@@ -37,6 +37,7 @@ cd backend && HOLD_TIMEOUT_SECONDS=20 SWEEPER_INTERVAL_SECONDS=2 DATABASE_PATH=d
 
 # Frontend (second terminal; backend must be running on :8000)
 cd frontend && npm install && npm run dev        # http://localhost:5173
+# (in background tasks run `node node_modules/vite/bin/vite.js --port 5173` instead: stopping `npx vite` leaves its node child holding the port)
 cd frontend && npm test && npm run build && npx oxlint src
 
 # UI check without PayPal or Gemini quota: fake PayPal, rules only, separate database
@@ -61,7 +62,7 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 | `backend/tests/` | Payment safety, PayPal client, risk engine, eval-set tests |
 | `eval/` | `cases.json`, `run_eval.py`, `results.md/json`, `cache/` (committed AI replies), `history/` (before-tuning run) |
 | `scripts/` | `sandbox_gate.py`, `api_smoke.py` |
-| `frontend/src/` | `App.tsx` (shell, header, hash routes `#/send`, `#/send/{id}`, `#/guardian`), `api.ts` (only network code), `types.ts`, `hooks.ts` (3 s polling, countdown, hash router), `highlight.ts` (evidence segments), `format.ts` (wording helpers), `components.tsx` (risk badge, AI banner, highlighted message, messages thread), `sender/`, `guardian/` |
+| `frontend/src/` | `App.tsx` (shell, header, hash routes `#/send`, `#/send/{id}`, `#/guardian`), `api.ts` (only network code), `types.ts`, `hooks.ts` (3 s polling, countdown, hash router), `highlight.ts` (evidence segments), `format.ts` (wording helpers), `components.tsx` (risk badge, AI banner, highlighted message, messages thread), `sender/` (SendPage, PaymentPage), `guardian/` (GuardianArea routes, QueuePage, ReviewPage, ActivityPage with AG Grid v36, InsightsPage, `events.ts` audit-log wording) |
 
 ## API shape the frontend relies on
 
@@ -82,6 +83,9 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - Start uvicorn with `--factory`. Importing `app.main` never touches the real database.
 - SQLite files live in `data/` (git-ignored). Payment ids are UUIDs, so PayPal request ids never repeat after a reset.
 - **Screenshots for checking the UI:** Edge headless works (`msedge --headless=new --screenshot=... --virtual-time-budget=6000`), but give each run its own `--user-data-dir` (runs sharing one attach to the first and are dropped), wait for the file (Edge returns before writing it), and note headless windows have a minimum width of about 500px: for a true 400px phone view, load the app inside a 400px iframe served from the Vite dev server (a `file://` wrapper does not load).
+- Git Bash rewrites arguments that start with `/`, so `"#/guardian/..."` passed to a script becomes a Windows path. Prefix with `MSYS_NO_PATHCONV=1`.
+- AG Grid v36 needs each feature's module registered (`ActivityPage.tsx`); the dev-only `ValidationModule` shows a popup naming any missing one (that is how `CellStyleModule` was found).
+- Live run Nov 9: the AI timed out on demo scenario 2 and the engine fell back to rules (still Medium, correct). For the recording, cache the demo replies (Phase 6).
 - Sender wording comes from the backend's `text.sender`; the frontend never says "authorization voided" on the sender side (`format.ts` has a test for it).
 - Known wart, left on purpose: in the Phase 2 history, deleting `risk/stub.py` landed in the first Phase 2 commit, so a few intermediate commits do not start. The final code is fine.
 
@@ -99,3 +103,4 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Nov 9, Phase 3.** 16-case evaluation. Switched to `gemini-3.1-flash-lite` after the 2.5-flash quota ran out. First run 15/16 (A2 miss); one tuning round (trusted-payee prompt rule, AI weights capped at the AI's own recommendation); frozen at 16/16, consistent over 3 runs. 82 tests.
 - **Nov 9, docs.** Plan and handoff split into `BUILD_PLAN.md` and `HANDOFF.md`.
 - **Nov 9, Phase 4.** Sender screens built and checked in headless Edge at desktop and true 400px phone width against the fake PayPal: send form, sent, warning (Medium, continue or cancel), on hold (High, highlighted evidence, guardian question and reply, countdown, cancel), declined with the guardian's note, rules-only banner. Fixed after review: the rules-built summary repeating the reasons list, four lint warnings.
+- **Nov 9, Phase 5.** `GET /stats` and a scam category on list rows. Guardian queue, review, activity grid (AG Grid, loaded only on that tab so the sender's bundle stays ~256 kB), insights. Checked in headless Edge; fixed an AG Grid missing-module error, oversized badges in the grid, truncated columns, header width, doubled brackets, "Not classified" ranked first, and the question box staying open on final payments. All three demo scenarios driven through the app's API on the real sandbox with Gemini; PayPal's own records matched (VOIDED, CAPTURED, VOIDED).

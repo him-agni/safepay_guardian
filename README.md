@@ -51,6 +51,11 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
+Two sides, one app:
+
+- **Sender** (large text, plain words): send money with an optional pasted message; see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons and the suspicious words highlighted; reply to the guardian.
+- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an Activity grid (AG Grid) with sorting and filters; and Insights cards.
+
 The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
 
 Frontend checks: `npm test` (unit tests), `npm run build` (type-check and production build), `npx oxlint src` (lint).
@@ -88,6 +93,7 @@ The smoke script runs every lane (auto-capture, warn then confirm, hold then app
 | `POST /payments/{id}/decline` | Guardian declines a held payment (voids, idempotent) |
 | `POST /payments/{id}/retry` | Guardian retries a failed capture or void |
 | `POST /payments/{id}/messages` | Add a sender or guardian message |
+| `GET /stats` | Counts and totals for the guardian's Insights (attempted payments held from capture, declines, approvals, top scam categories) |
 | `POST /assess` | Run the risk engine on a message (and optional amount and payee) without creating a payment |
 | `GET /health` | PayPal and AI configuration and reachability |
 
