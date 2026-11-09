@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "latency_ms": 969,
+  "response": "{\n  \"category\": \"prize\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"a one-time processing fee of $90 must be paid\",\n      \"explanation\": \"The message asks for an upfront payment to release a supposed prize, which is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Claim within 48 hours or the prize will be forfeited\",\n      \"explanation\": \"The message creates artificial pressure to act quickly to prevent the user from thinking clearly.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a prize scam. Legitimate contests do not require you to pay a fee to receive your winnings.\"\n}"
+}

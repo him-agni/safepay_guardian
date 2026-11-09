@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "latency_ms": 1062,
+  "response": "{\n  \"category\": \"grandparent\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Send now ASAP please\",\n      \"explanation\": \"The message uses urgent language to pressure the sender into acting quickly without thinking.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Hi Grandma\",\n      \"explanation\": \"The sender is using a familial term to establish a false sense of trust and impersonate a grandchild.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message uses urgent language and claims to be from a grandchild, which is a common tactic used by scammers. Please verify this request by calling your grandchild directly on a known number before sending any money.\"\n}"
+}

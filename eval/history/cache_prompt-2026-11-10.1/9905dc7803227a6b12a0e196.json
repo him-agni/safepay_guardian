@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "latency_ms": 1312,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"ALERT from your bank's security department\",\n      \"explanation\": \"The message claims to be from your bank to create a sense of authority.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"your account has been frozen\",\n      \"explanation\": \"The message uses a fake emergency to pressure you into acting quickly.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"send $200 to the verification account\",\n      \"explanation\": \"Banks will never ask you to move money to a 'verification' or 'safe' account.\"\n    },\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"tell no one about this case\",\n      \"explanation\": \"Scammers often ask for secrecy to prevent you from getting advice from family or bank staff.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a common scam impersonating your bank. Please do not send this payment and contact your bank directly using a trusted phone number.\"\n}"
+}

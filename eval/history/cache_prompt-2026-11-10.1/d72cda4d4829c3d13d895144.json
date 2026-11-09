@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "latency_ms": 765,
+  "response": "{\n  \"category\": \"none\",\n  \"indicators\": [],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"proceed\",\n  \"summary\": \"This appears to be a regular, routine payment to a trusted utility provider.\"\n}"
+}

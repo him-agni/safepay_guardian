@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "latency_ms": 1202,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Hi it's Sam, new number\",\n      \"explanation\": \"The sender claims to be a known contact using a new number, which is a common tactic used by scammers to impersonate family or friends.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"can you send the rent deposit?\",\n      \"explanation\": \"The message requests an immediate payment for a vague reason without providing details.\"\n    },\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"I'll explain later\",\n      \"explanation\": \"The sender is avoiding providing a clear explanation for the request, which is a red flag for potential fraud.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message appears to be from a scammer pretending to be someone you know. Please contact your friend through their original, known phone number to verify this request before sending any money.\"\n}"
+}
