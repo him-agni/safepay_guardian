@@ -662,9 +662,70 @@ class PaymentService:
             rows = conn.execute(sql, (*params, limit)).fetchall()
         return [_serialize(r) for r in rows]
 
+    def stats(self) -> dict:
+        """Counts and totals for the Insights cards. Seeded history is excluded.
 
-_SELECT_PAYMENT = """
-SELECT p.*, y.name AS payee_name, y.email AS payee_email, y.trusted AS payee_trusted
+        Wording matters: these are attempted payments held from capture, not "money saved" — we cannot
+        prove any of them was fraud.
+        """
+        with self._conn() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT p.id, p.status, p.amount_cents, p.risk_level, p.risk_mode, p.void_reason, p.decided_by,
+                       {_CATEGORY_SQL} AS category,
+                       EXISTS (SELECT 1 FROM events e WHERE e.payment_id = p.id AND e.type = 'status.changed'
+                               AND json_extract(e.detail_json, '$.to') = 'HELD') AS was_held,
+                       EXISTS (SELECT 1 FROM events e WHERE e.payment_id = p.id AND e.type = 'status.changed'
+                               AND json_extract(e.detail_json, '$.to') = 'WARNED') AS was_warned
+                FROM payments p WHERE p.is_seed = 0
+                """
+            ).fetchall()
+
+        def bucket(selected: list[sqlite3.Row]) -> dict:
+            total = sum(r["amount_cents"] for r in selected)
+            return {"count": len(selected), "total": format_amount(total), "total_cents": total}
+
+        not_captured = {S.VOIDED.value, S.EXPIRED.value, S.VOID_FAILED.value}
+        reviewed = [r for r in rows if r["was_held"] or r["was_warned"]]
+        categories: dict[str, list[sqlite3.Row]] = {}
+        for r in reviewed:
+            categories.setdefault(r["category"] or "uncategorised", []).append(r)
+        top = sorted(categories.items(), key=lambda kv: (kv[0] == "uncategorised", -len(kv[1]),
+                                                          -sum(r["amount_cents"] for r in kv[1])))
+
+        return {
+            "payments": len(rows),
+            "on_hold_now": sum(r["status"] == S.HELD.value for r in rows),
+            "held_for_guardian": bucket([r for r in rows if r["was_held"]]),
+            "warned_sender": bucket([r for r in rows if r["was_warned"]]),
+            "held_from_capture": bucket([r for r in reviewed if r["status"] in not_captured]),
+            "declined_by_guardian": bucket([r for r in rows if r["void_reason"] == "guardian_decline"]),
+            "cancelled_by_sender": bucket([r for r in rows if r["void_reason"] == "sender_cancel"]),
+            "expired_no_answer": bucket([r for r in rows if r["status"] == S.EXPIRED.value]),
+            "approved_by_guardian": bucket([r for r in rows if r["status"] == S.CAPTURED.value
+                                            and r["decided_by"] == "guardian"]),
+            "confirmed_by_sender": bucket([r for r in rows if r["status"] == S.CAPTURED.value
+                                           and r["decided_by"] == "sender"]),
+            "auto_captured": bucket([r for r in rows if r["status"] == S.CAPTURED.value and not r["decided_by"]]),
+            "by_level": {lv: sum(r["risk_level"] == lv for r in rows) for lv in ("low", "medium", "high")},
+            "rules_only_checks": sum(r["risk_mode"] == "rules_only" for r in rows),
+            "top_categories": [
+                {"category": cat, **bucket(items)} for cat, items in top[:6]
+            ],
+        }
+
+
+# The scam category shown in lists: the AI's category, or (when the AI said "none" or did not run) the
+# family of the best-matching known scam pattern.
+_CATEGORY_SQL = """(
+    SELECT COALESCE(NULLIF(json_extract(a.ai_json, '$.category'), 'none'),
+                    json_extract(a.patterns_json, '$[0].category'))
+    FROM assessments a WHERE a.payment_id = p.id ORDER BY a.id DESC LIMIT 1
+)"""
+
+_SELECT_PAYMENT = f"""
+SELECT p.*, y.name AS payee_name, y.email AS payee_email, y.trusted AS payee_trusted,
+       {_CATEGORY_SQL} AS category
 FROM payments p JOIN payees y ON y.id = p.payee_id
 """
 
@@ -699,6 +760,7 @@ def _serialize(row: sqlite3.Row) -> dict:
         "void_reason": row["void_reason"],
         "last_error": row["last_error"],
         "is_seed": bool(row["is_seed"]),
+        "category": row["category"] if "category" in row.keys() else None,
         "final": status in TERMINAL,
         "text": status_text(status.value, row["void_reason"]),
         "can": {

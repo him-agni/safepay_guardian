@@ -108,6 +108,11 @@ def create_app(
         statuses = [s.strip().upper() for s in status.split(",")] if status else None
         return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=min(limit, 500))}
 
+    @app.get("/stats")
+    def stats() -> dict:
+        """Counts and totals for the guardian's Insights cards (seeded history excluded)."""
+        return service.stats()
+
     @app.get("/payments/{payment_id}")
     def get_payment(payment_id: str) -> dict:
         return service.get_payment(payment_id)

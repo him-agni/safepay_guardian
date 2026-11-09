@@ -17,12 +17,15 @@ from app.state import PaymentService
 class FixedAssessor:
     """Risk engine double for payment-flow tests: always returns the configured level."""
 
-    def __init__(self, level: str = "low") -> None:
+    def __init__(self, level: str = "low", category: str | None = None) -> None:
         self.level = level
+        self.category = category
 
     def assess(self, ctx: PaymentContext) -> RiskResult:
         score = {"low": 0, "medium": 40, "high": 80}[self.level]
-        return RiskResult(self.level, score, "rules_only", f"Fixed {self.level} risk for tests.")  # type: ignore[arg-type]
+        ai = {"category": self.category} if self.category else None
+        return RiskResult(self.level, score, "hybrid" if ai else "rules_only",  # type: ignore[arg-type]
+                          f"Fixed {self.level} risk for tests.", ai=ai)
 
 
 def make_settings(tmp_path, **overrides) -> Settings:
@@ -46,8 +49,10 @@ class Env:
     paypal: FakePayPal
     risk: FixedAssessor
 
-    def pay(self, level: str = "high", amount: str = "500.00", payee: str = "Officer Smith", **extra) -> dict:
+    def pay(self, level: str = "high", amount: str = "500.00", payee: str = "Officer Smith",
+            category: str | None = None, **extra) -> dict:
         self.risk.level = level
+        self.risk.category = category
         resp = self.client.post("/payments", json={"payee_name": payee, "amount": amount, **extra})
         assert resp.status_code == 201, resp.text
         return resp.json()
