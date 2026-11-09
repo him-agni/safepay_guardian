@@ -210,6 +210,7 @@ class CachingProvider:
         self.dir = cache_dir
         self.offline = offline
         self.last_was_cached = False
+        self.last_latency_ms: int | None = None
         self.dir.mkdir(parents=True, exist_ok=True)
 
     def _path(self, system: str, user: str) -> Path:
@@ -219,14 +220,19 @@ class CachingProvider:
     def generate(self, system: str, user: str, schema: dict) -> str:
         path = self._path(system, user)
         if path.exists():
+            stored = json.loads(path.read_text(encoding="utf-8"))
             self.last_was_cached = True
-            return json.loads(path.read_text(encoding="utf-8"))["response"]
+            self.last_latency_ms = stored.get("latency_ms")  # latency of the original live call
+            return stored["response"]
         self.last_was_cached = False
         if self.offline:
             raise AIError("network", "offline mode and no cached AI response")
+        started = time.monotonic()
         text = self.inner.generate(system, user, schema)
-        path.write_text(json.dumps({"model": self.model, "prompt_version": PROMPT_VERSION, "response": text},
-                                   indent=2), encoding="utf-8")
+        self.last_latency_ms = int((time.monotonic() - started) * 1000)
+        path.write_text(json.dumps({"model": self.model, "prompt_version": PROMPT_VERSION,
+                                    "latency_ms": self.last_latency_ms, "response": text}, indent=2),
+                        encoding="utf-8")
         return text
 
     def check(self) -> bool:
