@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1094,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Daniel from the Fraud Prevention Team at your bank\",\n      \"explanation\": \"The sender is claiming to be from a bank's fraud department to gain trust.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"move $300 to the protected account\",\n      \"explanation\": \"The message instructs the user to move money to a 'protected' account, which is a common tactic used by scammers to steal funds.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"We noticed unusual sign-in activity\",\n      \"explanation\": \"The message creates a false sense of urgency by claiming there is suspicious activity on the account.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a scam. Banks will never ask you to move your money to a 'protected' account to keep it safe.\"\n}"
+}
