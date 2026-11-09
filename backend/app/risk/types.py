@@ -44,6 +44,7 @@ class RiskResult:
     evidence_spans: list[dict] = field(default_factory=list)  # {"field", "start", "end", "text"}
     model: str | None = None
     latency_ms: int | None = None
+    components: dict = field(default_factory=dict)  # rules-only / AI-only levels etc., used by the eval
 
 
 class Assessor(Protocol):
