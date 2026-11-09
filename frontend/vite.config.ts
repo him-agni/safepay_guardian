@@ -17,6 +17,11 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // AG Grid is ~880 kB minified; it is split into its own chunk and only loaded on the guardian's
+    // Activity tab, so the sender never downloads it.
+    chunkSizeWarningLimit: 1000,
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
