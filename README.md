@@ -6,7 +6,23 @@ SafePay Guardian holds a risky payment before it is captured, shows the sender a
 
 Status: work in progress for the PayPal hackathon (deadline Nov 12, 2026).
 
-## Run the backend (current state)
+## Try it without any keys
+
+The fake PayPal and the stored AI replies for the three demo messages need no credentials:
+
+```bash
+python -m venv .venv
+.venv/Scripts/python -m pip install -r backend/requirements.txt     # .venv/bin/python on macOS/Linux
+cd backend
+PAYPAL_MODE=fake AI_PROVIDER=replay AI_CACHE_DIR=demo/ai-cache DATABASE_PATH=data/judge.db   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
+# second terminal, repo root: seed the demo history, then start the web app
+PAYPAL_MODE=fake DATABASE_PATH=data/judge.db .venv/Scripts/python scripts/reset_demo.py
+cd frontend && npm install && npm run dev                            # http://localhost:5173
+```
+
+Then follow the three scenarios in [demo/README.md](demo/README.md). Messages other than the demo ones are checked by the rules alone, and the screen says so.
+
+## Run the backend
 
 Requires Python 3.10 or newer.
 

@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, after Phase 5 (Phase 6, demo prep, next).
+Last updated: Nov 9, 2026, after Phase 6 (Phase 7, ship, next).
 
 ## Where things stand
 
@@ -12,9 +12,10 @@ Last updated: Nov 9, 2026, after Phase 5 (Phase 6, demo prep, next).
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
 | Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 85 pytest tests and 20 Vitest unit tests, all passing, all offline |
+| Tests | 91 pytest tests and 20 Vitest unit tests, all passing, all offline |
 | Frontend | Both sides done. Sender: send, sent, warning, on hold, declined, messages. Guardian: queue, review (evidence with rule/AI labels, pattern, payee history, hold timer, approve with confirm step, decline with note, retry, ask the payer, audit log), Activity (AG Grid, lazy-loaded), Insights (stat tiles, top categories) |
-| Not built yet | Seed/reset script with sender history and a trusted payee, `demo/` messages, cached demo AI replies, rehearsal, video, Devpost submission. Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
+| Demo | `demo/README.md` runbook, `demo/scenarios.json`, stored AI replies in `demo/ai-cache/`, `scripts/reset_demo.py` (voids open holds, seeds history), `scripts/demo_rehearsal.py` (plays all three scenarios and checks PayPal). Rehearsed 3x on the real sandbox, all passed. Replay mode lets judges run it with no keys |
+| Not built yet | Fresh-clone test, final README pass, video, Devpost submission (Phase 7). Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
 
 ## Run and check
 
@@ -43,6 +44,14 @@ cd frontend && npm test && npm run build && npx oxlint src
 # UI check without PayPal or Gemini quota: fake PayPal, rules only, separate database
 cd backend && PAYPAL_MODE=fake AI_PROVIDER=none DATABASE_PATH=data/ui.db   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
 
+# Demo: backend in demo mode, reset before each take, optional rehearsal (see demo/README.md)
+cd backend && AI_CACHE_DIR=demo/ai-cache DATABASE_PATH=data/demo.db HOLD_TIMEOUT_SECONDS=120   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
+DATABASE_PATH=data/demo.db .venv/Scripts/python scripts/reset_demo.py
+DATABASE_PATH=data/demo.db .venv/Scripts/python scripts/demo_rehearsal.py --runs 3 --standalone 3
+
+# Judge mode: no keys (fake PayPal + stored AI replies)
+cd backend && PAYPAL_MODE=fake AI_PROVIDER=replay AI_CACHE_DIR=demo/ai-cache DATABASE_PATH=data/judge.db   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
+
 # Evaluation: offline from committed replies, or live
 PYTHONIOENCODING=utf-8 .venv/Scripts/python eval/run_eval.py --cached
 PYTHONIOENCODING=utf-8 .venv/Scripts/python -u eval/run_eval.py --repeat 3 --sleep 4 --timeout 25
@@ -61,7 +70,9 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 | `backend/app/risk/` | `rules.py`, `ai.py` (prompt, schema, Gemini, cache), `text.py` (grounding), `patterns.py` (BM25), `engine.py` (aggregation), `config.py` (all numbers, frozen) |
 | `backend/tests/` | Payment safety, PayPal client, risk engine, eval-set tests |
 | `eval/` | `cases.json`, `run_eval.py`, `results.md/json`, `cache/` (committed AI replies), `history/` (before-tuning run) |
-| `scripts/` | `sandbox_gate.py`, `api_smoke.py` |
+| `scripts/` | `sandbox_gate.py`, `api_smoke.py`, `reset_demo.py`, `demo_rehearsal.py` |
+| `backend/app/demo.py` | Seed history (3 payees, 7 past payments, typical ~$50, marked `is_seed`), reset, void open authorizations |
+| `demo/` | Runbook, scenarios, stored AI replies |
 | `frontend/src/` | `App.tsx` (shell, header, hash routes `#/send`, `#/send/{id}`, `#/guardian`), `api.ts` (only network code), `types.ts`, `hooks.ts` (3 s polling, countdown, hash router), `highlight.ts` (evidence segments), `format.ts` (wording helpers), `components.tsx` (risk badge, AI banner, highlighted message, messages thread), `sender/` (SendPage, PaymentPage), `guardian/` (GuardianArea routes, QueuePage, ReviewPage, ActivityPage with AG Grid v36, InsightsPage, `events.ts` audit-log wording) |
 
 ## API shape the frontend relies on
@@ -85,14 +96,14 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Screenshots for checking the UI:** Edge headless works (`msedge --headless=new --screenshot=... --virtual-time-budget=6000`), but give each run its own `--user-data-dir` (runs sharing one attach to the first and are dropped), wait for the file (Edge returns before writing it), and note headless windows have a minimum width of about 500px: for a true 400px phone view, load the app inside a 400px iframe served from the Vite dev server (a `file://` wrapper does not load).
 - Git Bash rewrites arguments that start with `/`, so `"#/guardian/..."` passed to a script becomes a Windows path. Prefix with `MSYS_NO_PATHCONV=1`.
 - AG Grid v36 needs each feature's module registered (`ActivityPage.tsx`); the dev-only `ValidationModule` shows a popup naming any missing one (that is how `CellStyleModule` was found).
-- Live run Nov 9: the AI timed out on demo scenario 2 and the engine fell back to rules (still Medium, correct). For the recording, cache the demo replies (Phase 6).
+- **Stored demo replies only match if the prompt is identical**: same payee, amount, note, message and the same sender history. Reset, then play 1, 2, 3 in order (scenario 2's capture changes the history scenario 3 sees). Scenario 3 is also stored standalone. Changing the prompt or `PROMPT_VERSION` invalidates them: re-run `demo_rehearsal.py --standalone 3` with Gemini on.
+- The AI timeout stays at 8 s (decided Nov 9).
 - Sender wording comes from the backend's `text.sender`; the frontend never says "authorization voided" on the sender side (`format.ts` has a test for it).
 - Known wart, left on purpose: in the Phase 2 history, deleting `risk/stub.py` landed in the first Phase 2 commit, so a few intermediate commits do not start. The final code is fine.
 
 ## Open questions for Himani
 
 - Hackathon Devpost URL, submission-period start date, judging criteria.
-- AI timeout: keep 8 s or raise to about 12 s (currently 8 s).
 
 ## Progress log
 
@@ -104,3 +115,4 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **Nov 9, docs.** Plan and handoff split into `BUILD_PLAN.md` and `HANDOFF.md`.
 - **Nov 9, Phase 4.** Sender screens built and checked in headless Edge at desktop and true 400px phone width against the fake PayPal: send form, sent, warning (Medium, continue or cancel), on hold (High, highlighted evidence, guardian question and reply, countdown, cancel), declined with the guardian's note, rules-only banner. Fixed after review: the rules-built summary repeating the reasons list, four lint warnings.
 - **Nov 9, Phase 5.** `GET /stats` and a scam category on list rows. Guardian queue, review, activity grid (AG Grid, loaded only on that tab so the sender's bundle stays ~256 kB), insights. Checked in headless Edge; fixed an AG Grid missing-module error, oversized badges in the grid, truncated columns, header width, doubled brackets, "Not classified" ranked first, and the question box staying open on final payments. All three demo scenarios driven through the app's API on the real sandbox with Gemini; PayPal's own records matched (VOIDED, CAPTURED, VOIDED).
+- **Nov 9, Phase 6.** Demo seed and reset (`app/demo.py`, voids open sandbox holds first), `demo/scenarios.json` and runbook, rehearsal script, replay AI mode for judges. Rehearsed 3 full runs plus scenario 3 alone on the real sandbox: every level, status and AI check as expected, all 10 authorizations matched on PayPal; 4 Gemini replies stored. Judge mode (fake PayPal + replay, no keys) passed the same rehearsal. Timeout kept at 8 s.

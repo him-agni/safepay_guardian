@@ -13,8 +13,8 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 3 Evaluation | Tue PM | **Done Nov 9** | 16 cases, run_eval.py, metrics, ablation, results.md, cache; tune once and freeze | Table prints; scams 100% High; 0/4 legit held |
 | 4 Sender screen | Tue eve | **Done Nov 9** | See "Phase 4 scope" | All three outcomes (sent, warned, held) work end to end in the browser |
 | 5 Guardian screens | Wed AM | **Done Nov 9** | See "Phase 5 scope" | Both sides drive all three demo scenarios |
-| 6 Demo prep | Wed early PM | Next | Seed/reset script, `demo/` messages, cached demo AI replies, fake-mode check, rehearse 3x | Clean run of all 3 scenarios on the real sandbox |
-| 7 Ship | Wed PM to eve | Not started | README, secret scan, fresh-clone test, video, Devpost submit | Submission shows as submitted |
+| 6 Demo prep | Wed early PM | **Done Nov 9** | Seed/reset script, `demo/` messages, cached demo AI replies, fake-mode check, rehearse 3x | Clean run of all 3 scenarios on the real sandbox |
+| 7 Ship | Wed PM to eve | Next | README, secret scan, fresh-clone test, video, Devpost submit | Submission shows as submitted |
 | 8 Buffer | Thu AM | — | Fixes only; stop by noon Central | |
 
 **Cut order** if something slips (cut from the top): screenshot analysis, Insights cards, scam-pattern retrieval, AG Grid (use a plain table). If Ask the payer is cut, demo 3 goes straight to "guardian declines".
@@ -51,7 +51,7 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 1 | Fake PayPal | In-process fake behind a `PaymentGateway` interface; used by pytest and by `PAYPAL_MODE=fake` so judges can run without credentials |
 | 2 | Payees | Labels only. In the sandbox every payment settles to one sandbox merchant; README says so |
 | 3 | AI | Gemini, structured JSON, behind a small provider interface; no key = rules only. Model `gemini-3.1-flash-lite` (switched from `gemini-2.5-flash` on Nov 9 after its 20 requests/day free limit ran out) |
-| 4 | AI timeout | 8 s in the app (falls back to rules with the banner). Open: raise to about 12 s? Default kept at 8 s until decided |
+| 4 | AI timeout | 8 s in the app (decided Nov 9): a slow AI falls back to rules with the banner. The demo uses stored replies (`demo/ai-cache`) so the recording does not depend on live latency |
 | 5 | D3 / demo 3 | Keep "safe account" as a hard rule; D3 and demo 3 use a paraphrase ("the protected account our security team set up") so the AI is what catches it |
 | 6 | Extra rules | "Changed number / new phone" (+25) and "new payee with no note and no message" (+15) |
 | 7 | Ask the payer | Promoted from Medium to High (used in demo 3) |
@@ -63,6 +63,7 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 13 | Personas | Sender "Margaret", guardian "Daniel" (her son) |
 | 14 | Hosting | Local only |
 | 15 | Trusted payee flag | Must (seeded data); a UI to manage it stays Medium |
+| 17 | Replay mode | `AI_PROVIDER=replay` serves stored AI replies with no key (for judges and the video); anything not stored falls back to rules with the banner; the review labels it "(stored reply)" |
 | 16 | Evaluation freeze | Tuned once on Nov 9 (prompt `2026-11-10.2`, config `2026-11-10.2`), then frozen. Any change means re-running the eval and saying so |
 
 ## Design rules
@@ -110,4 +111,3 @@ Final statuses: CAPTURED, VOIDED, EXPIRED, AUTH_FAILED.
 ## Still open
 
 - Hackathon Devpost URL, submission-period start date, judging criteria (needed for the README and Devpost text).
-- AI timeout: keep 8 s or raise to about 12 s (decision 4). Evidence for raising it: on Nov 9 the AI timed out on demo scenario 2 in a live run (it fell back to rules correctly, but the video should show the AI working).
