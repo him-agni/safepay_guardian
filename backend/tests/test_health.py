@@ -1,32 +1,30 @@
 from fastapi.testclient import TestClient
 
-from app.config import Settings, get_settings
-from app.main import app
+from app.main import create_app
+from app.paypal import FakePayPal
+
+from .conftest import make_settings
 
 
-def _client(**overrides) -> TestClient:
-    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, **overrides)
-    return TestClient(app)
+def _client(tmp_path, **overrides) -> TestClient:
+    return TestClient(create_app(make_settings(tmp_path, **overrides), gateway=FakePayPal()))
 
 
-def teardown_function() -> None:
-    app.dependency_overrides.clear()
-
-
-def test_health_defaults_to_fake_paypal_and_rules_only():
-    body = _client().get("/health").json()
+def test_health_defaults_to_fake_paypal_and_rules_only(tmp_path):
+    body = _client(tmp_path).get("/health").json()
     assert body["status"] == "ok"
-    assert body["paypal"] == {"mode": "fake", "configured": True}
+    assert body["paypal"] == {"mode": "fake", "configured": True, "reachable": True}
     assert body["ai"]["mode"] == "rules_only"
 
 
-def test_health_sandbox_without_credentials_is_not_configured():
-    body = _client(paypal_mode="sandbox").get("/health").json()
+def test_health_sandbox_without_credentials_is_not_configured(tmp_path):
+    body = _client(tmp_path, paypal_mode="sandbox").get("/health").json()
     assert body["paypal"]["configured"] is False
 
 
-def test_health_never_leaks_secrets():
+def test_health_never_leaks_secrets(tmp_path):
     text = _client(
+        tmp_path,
         paypal_mode="sandbox",
         paypal_client_id="cid",
         paypal_client_secret="super-secret-value",
