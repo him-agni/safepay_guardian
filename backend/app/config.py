@@ -1,10 +1,11 @@
 """App settings, read from environment variables and the repo-root .env file."""
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -41,6 +42,24 @@ class Settings(BaseSettings):
     # App
     database_path: str = "data/safepay.db"
     cors_origins: str = "http://localhost:5173"
+
+    @field_validator("sandbox_card_expiry")
+    @classmethod
+    def _normalise_expiry(cls, value: str) -> str:
+        """Accept YYYY-MM, MM/YYYY or MM/YY; PayPal wants YYYY-MM."""
+        value = value.strip()
+        if not value:
+            return value
+        if m := re.fullmatch(r"(\d{4})-(\d{2})", value):
+            year, month = m.groups()
+        elif m := re.fullmatch(r"(\d{1,2})\s*/\s*(\d{2}|\d{4})", value):
+            month, year = m.groups()
+            year = year if len(year) == 4 else "20" + year
+        else:
+            raise ValueError("SANDBOX_CARD_EXPIRY must look like YYYY-MM, MM/YYYY or MM/YY")
+        if not 1 <= int(month) <= 12:
+            raise ValueError("SANDBOX_CARD_EXPIRY month must be 01 to 12")
+        return f"{year}-{int(month):02d}"
 
     @property
     def paypal_configured(self) -> bool:
