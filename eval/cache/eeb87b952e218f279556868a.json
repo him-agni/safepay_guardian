@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1500,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Send now ASAP please\",\n      \"explanation\": \"The message uses high-pressure language to force a quick payment.\"\n    },\n    {\n      \"type\": \"payment_mismatch\",\n      \"evidence\": \"textbooks\",\n      \"explanation\": \"The payment amount is significantly higher than the sender's typical transaction history, and the request for $500 is unusual for textbooks.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"medium\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"This request uses urgent language to pressure you into sending money. Please verify this request with your family member through a known, trusted phone number before proceeding.\"\n}"
+}

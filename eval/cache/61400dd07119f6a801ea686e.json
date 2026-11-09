@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1015,
+  "response": "{\n  \"category\": \"grandparent\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Grandma, it's me Jake\",\n      \"explanation\": \"The message claims to be a family member in distress to manipulate the sender into sending money.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"I need $800 for bail right now\",\n      \"explanation\": \"The sender is being pressured to act immediately without verifying the situation.\"\n    },\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"Please don't tell mom\",\n      \"explanation\": \"The message explicitly asks the sender to hide the situation from other family members, which is a common tactic to prevent verification.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message shows signs of a common scam where someone pretends to be a relative in trouble. Please contact your family member directly through a known phone number before sending any money.\"\n}"
+}

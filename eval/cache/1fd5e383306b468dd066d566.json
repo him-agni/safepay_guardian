@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1000,
+  "response": "{\n  \"category\": \"romance\",\n  \"indicators\": [\n    {\n      \"type\": \"emotional_manipulation\",\n      \"evidence\": \"I want so badly to finally meet you\",\n      \"explanation\": \"The message uses emotional language to create a sense of intimacy and pressure to send money.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Could you send $400 for a new ticket?\",\n      \"explanation\": \"The sender is creating an urgent situation involving travel to solicit funds.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This request for money to cover travel costs is a common sign of a romance scam. Please talk to a trusted family member or friend before sending this payment.\"\n}"
+}

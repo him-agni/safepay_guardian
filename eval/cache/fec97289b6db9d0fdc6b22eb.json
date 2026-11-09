@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1219,
+  "response": "{\n  \"category\": \"tech_support\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Microsoft Security Alert\",\n      \"explanation\": \"The message claims to be from Microsoft to create a false sense of authority.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Pay the $299 service fee now\",\n      \"explanation\": \"The message uses high-pressure language to force an immediate payment.\"\n    },\n    {\n      \"type\": \"remote_access\",\n      \"evidence\": \"started the repair remotely\",\n      \"explanation\": \"The message claims a stranger is accessing the computer, which is a common tactic in tech support scams.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a tech support scam. Do not pay this fee or allow anyone remote access to your computer.\"\n}"
+}

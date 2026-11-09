@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1125,
+  "response": "{\n  \"category\": \"prize\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"one-time processing fee of $90 must be paid\",\n      \"explanation\": \"The message asks for an upfront payment to release a supposed prize, which is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Claim within 48 hours or the prize will be forfeited\",\n      \"explanation\": \"The sender is being pressured to act quickly to prevent them from thinking clearly.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"winner of our $25,000 Lucky Draw\",\n      \"explanation\": \"Unexpected notifications of large lottery or prize winnings are almost always fraudulent.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a prize scam. Legitimate contests do not ask winners to pay a fee to receive their winnings.\"\n}"
+}

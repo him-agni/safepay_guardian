@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1202,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Hi it's Sam, new number\",\n      \"explanation\": \"The sender claims to be a known contact using a new number, which is a common tactic used by scammers to bypass verification.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"can you send the rent deposit?\",\n      \"explanation\": \"The message creates a sense of urgency by requesting a significant payment without providing a clear explanation.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message claims to be from someone you know using a new number to request money. Please verify this request by calling your contact on their original, known phone number before sending any funds.\"\n}"
+}
