@@ -7,10 +7,14 @@ import type { EvidenceSpan, Level, Payment, Risk } from './types'
 const LEVEL_ICON: Record<Level, string> = { low: '●', medium: '▲', high: '■' }
 
 /** Risk is a word plus a shape plus a colour: colour is never the only signal. */
-export function RiskBadge({ level, suffix = 'risk' }: { level: Level; suffix?: string }) {
+export function RiskBadge({ level, suffix = 'risk', compact = false }: {
+  level: Level
+  suffix?: string
+  compact?: boolean
+}) {
   return (
-    <span className={`badge badge-${level}`}>
-      <span aria-hidden="true">{LEVEL_ICON[level]}</span> {LEVEL_WORD[level]} {suffix}
+    <span className={`badge badge-${level}${compact ? ' badge-compact' : ''}`}>
+      <span aria-hidden="true">{LEVEL_ICON[level]}</span> {LEVEL_WORD[level]}{suffix ? ` ${suffix}` : ''}
     </span>
   )
 }
@@ -79,11 +83,15 @@ export function MessageThread({
   role,
   onUpdate,
   prompt,
+  suggestions = [],
+  closed = false,
 }: {
   payment: Payment
   role: 'sender' | 'guardian'
   onUpdate: (p: Payment) => void
   prompt: string
+  suggestions?: string[]
+  closed?: boolean
 }) {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
@@ -118,6 +126,8 @@ export function MessageThread({
           ))}
         </ol>
       )}
+      {closed && messages.length === 0 && <p className="muted">No messages were exchanged.</p>}
+      {!closed && (
       <form onSubmit={submit} className="thread-form">
         <label htmlFor={`reply-${payment.id}`}>{prompt}</label>
         <div className="row">
@@ -132,8 +142,18 @@ export function MessageThread({
             {busy ? 'Sending…' : 'Send'}
           </button>
         </div>
+        {suggestions.length > 0 && (
+          <div className="suggestions" aria-label="Suggested questions">
+            {suggestions.map((q) => (
+              <button key={q} type="button" className="suggestion" onClick={() => setBody(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         <ErrorNote error={error} />
       </form>
+      )}
     </section>
   )
 }

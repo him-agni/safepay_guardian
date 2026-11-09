@@ -89,3 +89,67 @@ export function amountProblem(raw: string): string | null {
   if (n > 10000) return 'The most you can send here is $10,000.'
   return null
 }
+
+/** Guardian wording uses PayPal's terms ("captured", "voided"). */
+export function guardianStatusWord(p: Payment): string {
+  switch (p.status) {
+    case 'CAPTURED':
+      return 'Captured'
+    case 'VOIDED':
+      return 'Voided'
+    case 'EXPIRED':
+      return 'Timed out, voided'
+    case 'HELD':
+      return 'On hold'
+    case 'WARNED':
+      return 'Sender warned'
+    case 'AUTH_FAILED':
+      return 'Authorization failed'
+    case 'CAPTURE_FAILED':
+      return 'Capture failed'
+    case 'VOID_FAILED':
+      return 'Void failed'
+    case 'CAPTURING':
+      return 'Capturing'
+    case 'VOIDING':
+      return 'Voiding'
+    default:
+      return 'Authorizing'
+  }
+}
+
+/** What happened, in one word or two, for the activity grid (the "Decided by" column says who). */
+export function decisionWord(p: Payment): string {
+  if (p.status === 'CAPTURED') {
+    if (p.decided_by === 'guardian') return 'Approved'
+    if (p.decided_by === 'sender') return 'Confirmed'
+    return 'Automatic'
+  }
+  if (p.void_reason === 'guardian_decline') return 'Declined'
+  if (p.void_reason === 'sender_cancel') return 'Cancelled'
+  if (p.void_reason === 'timeout') return 'Timed out'
+  if (p.status === 'AUTH_FAILED') return 'Not authorized'
+  if (p.status === 'HELD' || p.status === 'WARNED') return 'Waiting'
+  return 'In progress'
+}
+
+export function decidedByWord(p: Payment): string {
+  if (p.decided_by === 'guardian') return 'Guardian'
+  if (p.decided_by === 'sender') return 'Sender'
+  if (p.decided_by === 'system') return 'System (timeout)'
+  if (p.status === 'CAPTURED') return 'Rules'
+  return '—'
+}
+
+export function categoryLabel(category: string | null | undefined): string {
+  if (!category || category === 'none') return 'Not classified'
+  if (category === 'uncategorised') return 'Not classified'
+  const words = category.replaceAll('_', ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+export function clockTime(iso: string): string {
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return ''
+  return new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}

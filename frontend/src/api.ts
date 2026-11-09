@@ -1,7 +1,7 @@
 // The only place the frontend talks to the network. Everything goes to our own backend (/api),
 // which is the only thing that talks to PayPal and the AI model.
 
-import type { Action, Health, Payment } from './types'
+import type { Action, Health, Payment, Stats } from './types'
 
 const BASE = '/api'
 
@@ -68,6 +68,7 @@ export interface NewPayment {
 
 export const api = {
   health: () => request<Health>('/health'),
+  stats: () => request<Stats>('/stats'),
   createPayment: (p: NewPayment) => request<Payment>('/payments', { method: 'POST', body: JSON.stringify(p) }),
   getPayment: (id: string) => request<Payment>(`/payments/${encodeURIComponent(id)}`),
   listPayments: (params: { status?: string; queue?: 'guardian'; limit?: number } = {}) => {

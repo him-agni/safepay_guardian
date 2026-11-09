@@ -91,6 +91,7 @@ export interface Payment {
   risk_level: Level | null
   risk_score: number | null
   risk_mode: 'hybrid' | 'rules_only' | null
+  paypal: { order_id: string | null; authorization_id: string | null; capture_id: string | null }
   created_at: string
   updated_at: string
   hold_expires_at: string | null
@@ -101,6 +102,7 @@ export interface Payment {
   void_reason: 'sender_cancel' | 'guardian_decline' | 'timeout' | null
   last_error: string | null
   is_seed: boolean
+  category: string | null
   final: boolean
   text: { sender: string; guardian: string }
   can: { confirm: boolean; cancel: boolean; approve: boolean; decline: boolean; retry: boolean }
@@ -119,3 +121,26 @@ export interface Health {
 }
 
 export type Action = 'confirm' | 'cancel' | 'approve' | 'decline' | 'retry'
+
+export interface Bucket {
+  count: number
+  total: string
+  total_cents: number
+}
+
+export interface Stats {
+  payments: number
+  on_hold_now: number
+  held_for_guardian: Bucket
+  warned_sender: Bucket
+  held_from_capture: Bucket
+  declined_by_guardian: Bucket
+  cancelled_by_sender: Bucket
+  expired_no_answer: Bucket
+  approved_by_guardian: Bucket
+  confirmed_by_sender: Bucket
+  auto_captured: Bucket
+  by_level: Record<Level, number>
+  rules_only_checks: number
+  top_categories: (Bucket & { category: string })[]
+}
