@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { GuardianPage } from './guardian/GuardianPage'
+import { GuardianArea } from './guardian/GuardianArea'
 import { go, useHashRoute } from './hooks'
 import { PaymentPage } from './sender/PaymentPage'
 import { SendPage } from './sender/SendPage'
@@ -8,7 +8,7 @@ type Role = 'sender' | 'guardian'
 
 function Header({ role }: { role: Role }) {
   return (
-    <header className="app-header">
+    <header className={`app-header role-${role}`}>
       <div className="app-header-inner">
         <a href="#/send" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -31,21 +31,23 @@ function Header({ role }: { role: Role }) {
 }
 
 export default function App() {
-  const [section = 'send', id] = useHashRoute()
+  const [section = 'send', ...rest] = useHashRoute()
+  const id = rest[0]
   const role: Role = section === 'guardian' ? 'guardian' : 'sender'
+  const path = rest.join('/')
 
   useEffect(() => {
     document.title = role === 'guardian' ? 'SafePay Guardian · Guardian' : 'SafePay Guardian · Send money'
     window.scrollTo(0, 0)
-  }, [role, id])
+  }, [role, path])
 
   return (
     <>
       <Header role={role} />
       <main className={`app-main role-${role}`}>
-        {section === 'guardian' ? <GuardianPage /> : id ? <PaymentPage key={id} id={id} /> : <SendPage />}
+        {section === 'guardian' ? <GuardianArea parts={rest} /> : id ? <PaymentPage key={id} id={id} /> : <SendPage />}
       </main>
-      <footer className="app-footer">
+      <footer className={`app-footer role-${role}`}>
         Demo of a protection workflow on the PayPal sandbox. The risk level is a decision aid, not a fraud
         probability. There is no real login.
       </footer>
