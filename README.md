@@ -70,7 +70,7 @@ npm run dev          # http://localhost:5173
 Two sides, one app:
 
 - **Sender** (large text, plain words): send money with an optional pasted message or a **screenshot of the conversation** (the AI copies the received messages word for word, leaves out the sender's own replies, and the sender checks the text before sending); see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons and the suspicious words highlighted; reply to the guardian.
-- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an **Activity** case log built with AG Grid (live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and Insights cards.
+- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an **Activity** case log built with AG Grid (**"Ask about your activity"**: a plain-English question such as "high-risk payments that I declined" becomes validated grid filters shown as removable chips, read-only; live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and Insights cards.
 
 The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
 
@@ -112,6 +112,7 @@ The smoke script runs every lane (auto-capture, warn then confirm, hold then app
 | `GET /stats` | Counts and totals for the guardian's Insights (attempted payments held from capture, declines, approvals, top scam categories) |
 | `POST /screenshots` | Save a screenshot of the conversation (PNG, JPEG or WebP, up to 4 MB) and transcribe it for the sender to confirm |
 | `GET /screenshots/{id}` | The saved screenshot, for both screens |
+| `POST /activity/ask` | Turn a guardian's plain-English question into grid filters. The AI proposes, a validator keeps only known columns, operators and values; read-only |
 | `POST /assess` | Run the risk engine on a message (and optional amount and payee) without creating a payment |
 | `GET /health` | PayPal and AI configuration and reachability |
 
