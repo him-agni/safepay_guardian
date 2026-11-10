@@ -1,0 +1,50 @@
+# Test run log
+
+Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo** (sandbox + stored AI replies, 2-minute hold), **judge** (fake PayPal + stored AI replies, no keys), **fake** (fake PayPal, rules only).
+
+---
+
+## 2026-11-10 · Manual · Sender: IRS gift-card scam (live Gemini)
+
+- **Run by:** Himani, in her browser.
+- **Mode:** sandbox + Gemini, default database, 24-hour hold.
+- **Steps:** Sender sends $500 to "Officer Collins" with the IRS gift-card message from demo scenario 1.
+- **Expected:** High risk, on hold, evidence highlighted; AI summary shown.
+- **Actual:** High risk, on hold. Reasons listed (gift cards, urgency, arrest threat, above the $300 limit, new payee) and "IRS", "gift cards", "within 30 minutes", "warrant", "arrest" highlighted. Banner: "AI check unavailable, rules only". The audit log shows the Gemini call **timed out after 8.1 s** (`gemini-3.1-flash-lite`), so the engine fell back to rules.
+- **Verdict:** Pass for safety (the hard rule held the payment and the fallback was announced). The AI part did not run.
+- **Follow-up:** Second live timeout from this model (the first was demo scenario 2 on Nov 9). The demo uses stored replies so the video is unaffected, but live use is degraded when the model is slow. Options were raised with Himani: keep 8 s (decided Nov 9), add one quick retry, or try another model.
+- **Screenshot:** [screenshots/2026-11-10-sender-irs-scam-held-ai-timeout.png](screenshots/2026-11-10-sender-irs-scam-held-ai-timeout.png)
+
+## 2026-11-10 · Manual · Guardian activity grid after seeding
+
+- **Run by:** Himani.
+- **Mode:** sandbox + Gemini, default database.
+- **Steps:** `scripts/reset_demo.py` on the default database, then opened I am the guardian → Activity.
+- **Expected:** Margaret's 7 seeded past payments, totals row.
+- **Actual:** 7 rows labelled "Past payment", All 7, totals "7 shown · $335.00 · Captured $335.00".
+- **Verdict:** Pass.
+- **Screenshot:** [screenshots/2026-11-10-activity-after-seeding.png](screenshots/2026-11-10-activity-after-seeding.png)
+
+## 2026-11-10 · Manual · Guardian activity grid was empty
+
+- **Run by:** Himani.
+- **Mode:** backend restarted with the plain command (no `DATABASE_PATH`), so it used the empty default `data/safepay.db`.
+- **Expected:** demo payments in the grid.
+- **Actual:** every count 0, "No payments match this view".
+- **Verdict:** Not a code bug (wrong database), but a usability gap: the empty state does not say the database has no payments or how to seed it.
+- **Follow-up:** Improve the empty state to explain an empty database and point to `scripts/reset_demo.py`.
+- **Screenshot:** [screenshots/2026-11-10-activity-empty-default-database.png](screenshots/2026-11-10-activity-empty-default-database.png)
+
+## 2026-11-09 · Automated live runs (summary)
+
+Recorded in the commit history and `docs/HANDOFF.md`; listed here so all live evidence is in one place.
+
+| Run | Mode | Result |
+|---|---|---|
+| `scripts/sandbox_gate.py` | sandbox | create + authorize, read, capture, void all worked |
+| `scripts/api_smoke.py` (2 runs) | sandbox (+ Gemini on the second) | every lane incl. hold timeout; 6/6 authorizations matched on PayPal each run |
+| Three demo scenarios through the app's API | sandbox + Gemini | VOIDED / CAPTURED / VOIDED, matched on PayPal; scenario 2's AI call timed out once (rules fallback, still Medium) |
+| `scripts/demo_rehearsal.py --runs 3 --standalone 3` | demo | all checks passed; 10/10 authorizations matched on PayPal |
+| `scripts/demo_rehearsal.py` | judge (no keys) | all checks passed |
+| Scenario 1 re-recorded without a brand name | demo | all checks passed; PayPal matched |
+| `eval/run_eval.py` (live, then `--repeat 3`) | Gemini | hybrid 16/16, rules only 12/16, AI only 15/16; identical across 3 runs |
