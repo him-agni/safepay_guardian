@@ -69,7 +69,7 @@ npm run dev          # http://localhost:5173
 
 Two sides, one app:
 
-- **Sender** (large text, plain words): send money with an optional pasted message; see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons and the suspicious words highlighted; reply to the guardian.
+- **Sender** (large text, plain words): send money with an optional pasted message or a **screenshot of the conversation** (the AI copies the received messages word for word, leaves out the sender's own replies, and the sender checks the text before sending); see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons and the suspicious words highlighted; reply to the guardian.
 - **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an **Activity** case log built with AG Grid (live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and Insights cards.
 
 The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
@@ -110,6 +110,8 @@ The smoke script runs every lane (auto-capture, warn then confirm, hold then app
 | `POST /payments/{id}/retry` | Guardian retries a failed capture or void |
 | `POST /payments/{id}/messages` | Add a sender or guardian message |
 | `GET /stats` | Counts and totals for the guardian's Insights (attempted payments held from capture, declines, approvals, top scam categories) |
+| `POST /screenshots` | Save a screenshot of the conversation (PNG, JPEG or WebP, up to 4 MB) and transcribe it for the sender to confirm |
+| `GET /screenshots/{id}` | The saved screenshot, for both screens |
 | `POST /assess` | Run the risk engine on a message (and optional amount and payee) without creating a payment |
 | `GET /health` | PayPal and AI configuration and reachability |
 
@@ -123,7 +125,9 @@ The engine returns Low, Medium or High. The AI is never the sole decision-maker:
 4. **Aggregation** (`app/risk/engine.py`): final level = the highest of the hard-rule level, the level of the combined heuristic score, and the AI's floor (which needs at least one grounded indicator). The AI can raise a level but never lower one. A trusted payee only removes the "new payee" signal.
 5. **Scam-pattern retrieval** (`app/risk/patterns.py`): 25 known scam scripts, written for this project, ranked with BM25 and shown as "similar known pattern". They inform the AI but add no weight.
 
-If the AI is not configured, times out, hits a rate limit or returns invalid JSON, the engine runs on rules alone and the response says "AI check unavailable, rules only". Hard rules still hold dangerous payments. Every number lives in `app/risk/config.py`.
+**Screenshots** (`transcribe_screenshot` in `app/risk/ai.py`): Gemini reads the image and returns each message with who wrote it; only the received messages go to the risk check, after the sender confirms them, so the evidence is grounded in text the sender has seen. The screenshot itself is shown to the guardian next to the text. Instructions written inside the image are transcribed, never followed.
+
+If the AI is not configured, times out (12 s), hits a rate limit or returns invalid JSON, the engine runs on rules alone and the response says "AI check unavailable, rules only". Hard rules still hold dangerous payments. Every number lives in `app/risk/config.py`.
 
 ## Evaluation
 

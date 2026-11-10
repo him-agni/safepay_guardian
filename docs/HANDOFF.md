@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, evening. Phase 6b items 1-2 done; next is item 3 (screenshot analysis), then 4-7 (BUILD_PLAN.md), then Phase 7 ship on Wed.
+Last updated: Nov 10, 2026. Upgrades 1-3 done (trademark-free demo, activity case log, screenshot reading); next is the held-out evaluation, then 5-7 (BUILD_PLAN.md), then shipping on Wed.
 
 ## Where things stand
 
@@ -12,7 +12,7 @@ Last updated: Nov 9, 2026, evening. Phase 6b items 1-2 done; next is item 3 (scr
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
 | Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 93 pytest tests and 27 Vitest unit tests, all passing, all offline |
+| Tests | 108 pytest tests and 29 Vitest unit tests, all passing, all offline |
 | Frontend | Both sides done. Sender: send, sent, warning, on hold, declined, messages. Guardian: queue, review (evidence with rule/AI labels, pattern, payee history, hold timer, approve with confirm step, decline with note, retry, ask the payer, audit log), Activity (AG Grid, lazy-loaded), Insights (stat tiles, top categories) |
 | Demo | `demo/README.md` runbook, `demo/scenarios.json`, stored AI replies in `demo/ai-cache/`, `scripts/reset_demo.py` (voids open holds, seeds history), `scripts/demo_rehearsal.py` (plays all three scenarios and checks PayPal). Rehearsed 3x on the real sandbox, all passed. Replay mode lets judges run it with no keys |
 | Not built yet | Fresh-clone test, final README pass, video, Devpost submission (Phase 7). Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
@@ -94,6 +94,8 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - Start uvicorn with `--factory`. Importing `app.main` never touches the real database.
 - SQLite files live in `data/` (git-ignored). Payment ids are UUIDs, so PayPal request ids never repeat after a reset.
 - **Screenshots for checking the UI:** Edge headless works (`msedge --headless=new --screenshot=... --virtual-time-budget=6000`), but give each run its own `--user-data-dir` (runs sharing one attach to the first and are dropped), wait for the file (Edge returns before writing it), and note headless windows have a minimum width of about 500px: for a true 400px phone view, load the app inside a 400px iframe served from the Vite dev server (a `file://` wrapper does not load).
+- **Gemini busy spells (Nov 10):** `gemini-3.1-flash-lite` returned HTTP 503 "high demand" and timeouts for long stretches. The client retries a 503 once after 1.5 s; past that the engine falls back to rules. Without the AI, demo scenario 3 (no scam keywords) is only Medium: that is the honest rules-only result. Stored replies keep the demo independent of this.
+- **Screenshots** are saved in `data/uploads/` (git-ignored) under a SHA-256 name; stored transcriptions in `demo/ai-cache/img-*.json` are keyed by the image's fingerprint, so a re-saved or edited PNG needs a new live read.
 - **AG Grid update loop:** setting `pinnedBottomRowData` fires `onModelUpdated`; recomputing the totals there must skip unchanged totals (`ActivityPage.tsx` keeps a key) or the page never settles (headless screenshots time out, real browsers burn CPU).
 - AG Grid v36.2 deprecated `tooltipValueGetter`; use `tooltip: (params) => ...`. `PinnedColumnModule` is not exported; column pinning is core.
 - Himani may have her own app running on ports 5173 and 8000: test on other ports (`SAFEPAY_BACKEND=http://localhost:8002 node node_modules/vite/bin/vite.js --port 5174`) and never stop processes you did not start.

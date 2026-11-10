@@ -4,6 +4,21 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Live · Screenshot reading and demo rehearsal (sandbox + Gemini)
+
+- **Run by:** Claude, on separate ports and a separate database (Himani's own app untouched).
+- **Mode:** demo (real sandbox, Gemini with stored replies), new screenshot flow for scenario 3.
+- **Steps:** upload `demo/screenshots/bank-fraud-team-text.png` through `POST /screenshots`; run `scripts/demo_rehearsal.py --runs 1 --standalone 3`.
+- **Expected:** the AI copies the three received messages word for word and skips Margaret's own reply; scenario 3 is High from the AI; PayPal matches.
+- **Actual:**
+  - First probe: Gemini answered **HTTP 503 "high demand"**; the second probe transcribed every bubble exactly (1.5 s), labelled the scammer "them" and Margaret "me".
+  - In the app, the first two reads failed with 503 (4.0 s and 12.1 s including the new single retry); the third succeeded and is stored.
+  - Rehearsal attempt 1: the in-order run passed, but the standalone scenario 3 AI check **timed out at 12 s**, so rules alone decided: **Medium (warning), not High**, exactly as the evaluation predicts for rules alone on this scam. Attempt 2 passed every check; PayPal matched for all authorizations.
+  - Found and fixed during the run: a failed read reported the previous call's latency (797 ms every time).
+- **Verdict:** Pass after retries. The feature works; the live AI was unreliable today.
+- **Follow-up:** the demo uses stored replies; the README states that without the AI, contextual scams get a warning rather than a hold.
+- **Screenshot:** [screenshots/2026-11-10-guardian-review-with-screenshot.png](screenshots/2026-11-10-guardian-review-with-screenshot.png) (judge mode: the guardian sees the transcribed text with the AI's quotes highlighted and the original screenshot beneath it).
+
 ## 2026-11-10 · Manual · Sender: IRS gift-card scam (live Gemini)
 
 - **Run by:** Himani, in her browser.
