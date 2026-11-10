@@ -6,9 +6,9 @@ import { SendPage } from './sender/SendPage'
 
 type Role = 'sender' | 'guardian'
 
-function Header({ role }: { role: Role }) {
+function Header({ role, wide }: { role: Role; wide: string }) {
   return (
-    <header className={`app-header role-${role}`}>
+    <header className={`app-header role-${role}${wide}`}>
       <div className="app-header-inner">
         <a href="#/send" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -35,6 +35,7 @@ export default function App() {
   const id = rest[0]
   const role: Role = section === 'guardian' ? 'guardian' : 'sender'
   const path = rest.join('/')
+  const wide = role === 'guardian' && rest[0] === 'activity' ? ' wide' : ''
 
   useEffect(() => {
     document.title = role === 'guardian' ? 'SafePay Guardian · Guardian' : 'SafePay Guardian · Send money'
@@ -43,11 +44,11 @@ export default function App() {
 
   return (
     <>
-      <Header role={role} />
-      <main className={`app-main role-${role}`}>
+      <Header role={role} wide={wide} />
+      <main className={`app-main role-${role}${wide}`}>
         {section === 'guardian' ? <GuardianArea parts={rest} /> : id ? <PaymentPage key={id} id={id} /> : <SendPage />}
       </main>
-      <footer className={`app-footer role-${role}`}>
+      <footer className={`app-footer role-${role}${wide}`}>
         Demo of a protection workflow on the PayPal sandbox. The risk level is a decision aid, not a fraud
         probability. There is no real login.
       </footer>

@@ -699,16 +699,119 @@ mark {
   text-transform: capitalize;
 }
 
-.grid-search {
-  max-width: 28rem;
+.app-main.wide,
+.app-footer.wide,
+.app-header.wide .app-header-inner {
+  max-width: 1440px;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+.preset {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.preset[aria-pressed='true'] {
+  border-color: var(--brand);
+  background: #e8f0fb;
+  color: var(--ink);
+}
+.preset-count {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-left: 0.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--ground);
+  font-variant-numeric: tabular-nums;
+}
+.grid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
-.grid-wrap {
-  overflow-x: auto;
+.grid-search {
+  flex: 1;
+  min-width: 14rem;
+  max-width: 28rem;
+}
+.grid-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.btn-quiet {
+  background: transparent;
+  color: var(--brand);
+  text-decoration: underline;
 }
 .grid-box {
-  height: 560px;
-  min-width: 960px;
+  height: 640px;
+}
+.grid-quote {
+  background: var(--mark);
+  padding: 0 0.25rem;
+  border-bottom: 2px solid #b98300;
+}
+.grid-action {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 2px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.grid-action-primary {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+.ag-row.row-waiting {
+  background-color: #fff6e0;
+}
+.ag-row.row-stopped,
+.ag-row.row-seed {
+  color: var(--ink-soft);
+}
+.ag-row.row-total {
+  background-color: #eef1f5;
+  font-weight: 700;
+}
+.grid-tip {
+  max-width: 26rem;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 6px 18px rgba(20, 24, 31, 0.18);
+  font-size: 0.9rem;
+}
+.grid-tip-summary {
+  font-weight: 600;
+}
+.grid-tip ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0.5rem;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .tiles {
