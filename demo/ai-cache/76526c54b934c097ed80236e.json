@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 2765,
+  "response": "{\n  \"understood\": true,\n  \"filters\": [\n    {\n      \"column\": \"level\",\n      \"operator\": \"equals\",\n      \"value\": \"high\"\n    },\n    {\n      \"column\": \"decision\",\n      \"operator\": \"equals\",\n      \"value\": \"Declined\"\n    }\n  ],\n  \"sort\": {\n    \"column\": \"none\",\n    \"direction\": \"asc\"\n  },\n  \"explanation\": \"This shows high-risk payments that have been declined.\"\n}"
+}

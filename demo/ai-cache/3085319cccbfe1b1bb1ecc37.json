@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 9483,
+  "response": "{\n  \"understood\": true,\n  \"filters\": [\n    {\n      \"column\": \"amount\",\n      \"operator\": \"greater_than\",\n      \"value\": \"300\"\n    },\n    {\n      \"column\": \"decision\",\n      \"operator\": \"equals\",\n      \"value\": \"Waiting\"\n    }\n  ],\n  \"sort\": {\n    \"column\": \"none\",\n    \"direction\": \"asc\"\n  },\n  \"explanation\": \"These filters show payments greater than $300 that are currently in a waiting decision state.\"\n}"
+}

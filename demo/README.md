@@ -117,9 +117,9 @@ Say: no scam keywords, yet the AI linked the message to the payment and flagged 
 
 ### Closing shots (about 2:15 to 3:00)
 
-- Guardian **Activity** tab: the grid with all three outcomes.
+- Guardian **Activity** tab: the grid with all three outcomes. Click the example question **High-risk payments that I declined**: the AI turns it into the chips "Risk is High" and "Decision is Declined" and the grid filters itself (stored reply, so it is instant). Say: it only filters the view; it can never approve or decline.
 - Guardian **Insights** tab: "Attempted payments held from capture".
-- The evaluation table: [eval/results.md](../eval/results.md) (rules only 12/16, AI only 15/16, hybrid 16/16).
+- The evaluation: [eval/results.md](../eval/results.md) (16 cases: rules only 12/16, AI only 15/16, hybrid 16/16) and the held-out set [eval/results_heldout.md](../eval/results_heldout.md) (69 cases never used for tuning, including real scam texts: every scam at least warned, 96% held, no legitimate payment held).
 - Say "PayPal" and "AI" out loud. Closing line: sandbox only; a decision aid with a human in charge.
 
 ## Without PayPal or Gemini keys (judges)

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 8172,
+  "response": "{\n  \"understood\": true,\n  \"filters\": [],\n  \"sort\": {\n    \"column\": \"none\",\n    \"direction\": \"asc\"\n  },\n  \"explanation\": \"I cannot approve payments, but I have cleared the filters as requested.\"\n}"
+}
