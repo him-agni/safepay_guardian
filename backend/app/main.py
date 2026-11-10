@@ -9,12 +9,14 @@ import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import date
 from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from . import activity_query
 from .config import Settings, get_settings
 from .models import AssessRequest, CreatePaymentRequest, DecisionRequest, MessageRequest, ScreenshotRequest
 from .paypal import PaymentGateway, build_gateway
@@ -108,6 +110,16 @@ def create_app(
     def list_payments(status: Optional[str] = None, queue: Optional[str] = None, limit: int = 200) -> dict:
         statuses = [s.strip().upper() for s in status.split(",")] if status else None
         return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=min(limit, 500))}
+
+    @app.post("/activity/ask")
+    def ask_activity(body: activity_query.AskRequest) -> dict:
+        """Turn a plain-English question into validated filters for the activity grid (read-only)."""
+        result = activity_query.ask(ai_provider, body, date.today())
+        service._event(None, "guardian", "activity.asked", {
+            "question": body.question, "filters": len(result.filters), "ignored": len(result.ignored),
+            "error": result.error is not None, "cached": result.cached, "latency_ms": result.latency_ms,
+        })
+        return result.as_dict()
 
     @app.post("/screenshots")
     def read_screenshot(body: ScreenshotRequest) -> dict:
