@@ -660,7 +660,47 @@ class PaymentService:
         sql += " ORDER BY p.created_at DESC LIMIT ?"
         with self._conn() as conn:
             rows = conn.execute(sql, (*params, limit)).fetchall()
-        return [_serialize(r) for r in rows]
+            briefs = self._risk_briefs(conn, [r["id"] for r in rows])
+        out = []
+        for r in rows:
+            item = _serialize(r)
+            item["risk_brief"] = briefs.get(r["id"])
+            out.append(item)
+        return out
+
+    @staticmethod
+    def _risk_briefs(conn: sqlite3.Connection, payment_ids: list[str]) -> dict[str, dict]:
+        """A short, list-friendly view of each payment's latest assessment (one query for all rows)."""
+        if not payment_ids:
+            return {}
+        marks = ",".join("?" * len(payment_ids))
+        rows = conn.execute(
+            f"""SELECT a.payment_id, a.summary, a.mode, a.evidence_json, a.components_json
+                FROM assessments a
+                JOIN (SELECT payment_id, MAX(id) AS last FROM assessments WHERE payment_id IN ({marks})
+                      GROUP BY payment_id) t ON a.id = t.last""",
+            payment_ids,
+        ).fetchall()
+        briefs = {}
+        for a in rows:
+            evidence = json.loads(a["evidence_json"] or "{}")
+            indicators = evidence.get("indicators", []) if isinstance(evidence, dict) else evidence
+            components = json.loads(a["components_json"] or "{}")
+            # Quoted evidence only: words that appear in the message or note (rule matches or grounded AI quotes).
+            quotes = [
+                {"type": i["type"], "evidence": i["evidence"], "source": i["source"], "label": i["label"]}
+                for i in indicators if i.get("evidence") and i.get("spans")
+            ]
+            checked_by = "rules"
+            if a["mode"] == "hybrid":
+                checked_by = "stored_reply" if components.get("ai_cached") else "ai"
+            briefs[a["payment_id"]] = {
+                "summary": a["summary"],
+                "checked_by": checked_by,
+                "ai_flagged": any(i["source"] == "ai" for i in indicators),
+                "top_evidence": quotes[:3],
+            }
+        return briefs
 
     def stats(self) -> dict:
         """Counts and totals for the Insights cards. Seeded history is excluded.

@@ -56,3 +56,34 @@ def test_list_rows_carry_the_scam_category(env):
 def test_stats_on_an_empty_database(env):
     s = env.client.get("/stats").json()
     assert s["payments"] == 0 and s["held_from_capture"]["total"] == "0.00" and s["top_categories"] == []
+
+
+def test_list_rows_carry_a_risk_brief_with_quoted_evidence_only(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.paypal import FakePayPal
+    from app.risk.engine import HybridEngine
+
+    from .conftest import make_settings
+
+    app = create_app(make_settings(tmp_path), gateway=FakePayPal(), assessor=HybridEngine(None))
+    with TestClient(app) as client:
+        client.post("/payments", json={"payee_name": "Officer Collins", "amount": "500",
+                                       "message_text": "Pay in gift cards within 30 minutes or be arrested."})
+        [row] = client.get("/payments").json()["payments"]
+    brief = row["risk_brief"]
+    assert brief["checked_by"] == "rules" and brief["ai_flagged"] is False
+    assert brief["summary"]
+    quotes = [q["evidence"] for q in brief["top_evidence"]]
+    assert quotes[0] == "gift cards"  # the hard rule comes first
+    assert len(quotes) <= 3
+    assert "Officer Collins" not in quotes  # the "new payee" signal is not a quote from the message
+
+
+def test_list_rows_without_an_assessment_have_no_brief(env):
+    from app import demo
+
+    demo.reset(env.service.db_path)
+    rows = env.client.get("/payments").json()["payments"]
+    assert rows and all(r["risk_brief"] is None for r in rows)
