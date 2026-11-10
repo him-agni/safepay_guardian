@@ -13,14 +13,14 @@ from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from .config import Settings, get_settings
-from .models import AssessRequest, CreatePaymentRequest, DecisionRequest, MessageRequest
+from .models import AssessRequest, CreatePaymentRequest, DecisionRequest, MessageRequest, ScreenshotRequest
 from .paypal import PaymentGateway, build_gateway
 from .risk.engine import build_assessor
 from .risk.types import Assessor
-from .state import PaymentError, PaymentService
+from .state import SCREENSHOT_MEDIA, PaymentError, PaymentService
 
 log = logging.getLogger("safepay")
 
@@ -101,13 +101,24 @@ def create_app(
         """Run the risk engine, authorize on PayPal, then capture, warn or hold by risk level."""
         return service.create_payment(
             payee_name=body.payee_name, payee_email=body.payee_email, amount_cents=body.amount_cents,
-            note=body.note, message_text=body.message_text,
+            note=body.note, message_text=body.message_text, screenshot_id=body.screenshot_id,
         )
 
     @app.get("/payments")
     def list_payments(status: Optional[str] = None, queue: Optional[str] = None, limit: int = 200) -> dict:
         statuses = [s.strip().upper() for s in status.split(",")] if status else None
         return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=min(limit, 500))}
+
+    @app.post("/screenshots")
+    def read_screenshot(body: ScreenshotRequest) -> dict:
+        """Save a screenshot of the conversation and transcribe it for the sender to confirm."""
+        return service.read_screenshot(body.image_base64, body.mime_type)
+
+    @app.get("/screenshots/{screenshot_id}")
+    def get_screenshot(screenshot_id: str) -> FileResponse:
+        path = service.screenshot_file(screenshot_id)
+        return FileResponse(path, media_type=SCREENSHOT_MEDIA[path.suffix.lstrip(".")],
+                            headers={"Cache-Control": "private, max-age=86400"})
 
     @app.get("/stats")
     def stats() -> dict:

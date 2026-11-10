@@ -31,6 +31,7 @@ class FixedAssessor:
 def make_settings(tmp_path, **overrides) -> Settings:
     values = dict(
         database_path=str(tmp_path / "test.db"),
+        upload_dir=str(tmp_path / "uploads"),
         paypal_mode="fake",
         hold_timeout_seconds=120,
         sweeper_interval_seconds=0,

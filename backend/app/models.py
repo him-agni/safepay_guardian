@@ -16,6 +16,7 @@ class CreatePaymentRequest(BaseModel):
     amount: Decimal = Field(gt=0, le=MAX_AMOUNT, description="US dollars, at most 2 decimal places")
     note: str = Field(default="", max_length=500)
     message_text: str = Field(default="", max_length=5000)
+    screenshot_id: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{32}\.(png|jpg|webp)$")
 
     @field_validator("payee_name")
     @classmethod
@@ -45,6 +46,11 @@ class AssessRequest(BaseModel):
     @property
     def amount_cents(self) -> int:
         return int((self.amount * 100).to_integral_value()) if self.amount is not None else 0
+
+
+class ScreenshotRequest(BaseModel):
+    image_base64: str = Field(min_length=8, max_length=6_000_000, description="base64 or a data: URL")
+    mime_type: str = Field(max_length=40)
 
 
 class DecisionRequest(BaseModel):

@@ -13,7 +13,11 @@ Rules this module enforces:
 
 from __future__ import annotations
 
+import base64
+import binascii
+import hashlib
 import json
+import re
 import sqlite3
 import threading
 import time
@@ -22,11 +26,13 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Callable, Iterator, TypeVar
 
 from . import db
 from .config import Settings
 from .paypal import USABLE_AUTH_STATUSES, GatewayError, PaymentGateway, format_amount, request_id
+from .risk import ai as ai_mod
 from .risk.types import Assessor, PaymentContext, RiskResult
 
 T = TypeVar("T")
@@ -71,6 +77,34 @@ class NotFound(PaymentError):
 class Conflict(PaymentError):
     status_code = 409
     code = "conflict"
+
+
+class Invalid(PaymentError):
+    status_code = 422
+    code = "invalid"
+
+
+# Screenshots are stored under a content fingerprint, so a name can never point outside the upload folder.
+SCREENSHOT_ID = re.compile(r"^[0-9a-f]{32}\.(png|jpg|webp)$")
+SCREENSHOT_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
+SCREENSHOT_MEDIA = {ext: mime for mime, ext in SCREENSHOT_TYPES.items()}
+
+
+def _looks_like(ext: str, data: bytes) -> bool:
+    if ext == "png":
+        return data.startswith(b"\x89PNG\r\n\x1a\n")
+    if ext == "jpg":
+        return data.startswith(b"\xff\xd8\xff")
+    return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+
+SCREENSHOT_HELP = {
+    "not_configured": "We can't read screenshots right now. Please type or paste the message instead.",
+    "no_messages": "We couldn't find any messages in that picture. Please check it is a screenshot of the "
+                   "conversation, or type the message instead.",
+}
+SCREENSHOT_RETRY = ("We couldn't read the screenshot just now. Please type or paste the message instead, "
+                    "or try again in a moment.")
 
 
 @dataclass(frozen=True)
@@ -245,8 +279,10 @@ class PaymentService:
 
     def create_payment(
         self, *, payee_name: str, amount_cents: int, note: str = "", message_text: str = "",
-        payee_email: str | None = None, currency: str = "USD",
+        payee_email: str | None = None, currency: str = "USD", screenshot_id: str | None = None,
     ) -> dict:
+        if screenshot_id is not None:
+            self.screenshot_file(screenshot_id, invalid=True)
         payee, ctx = self._build_context(payee_name, amount_cents, note, message_text, currency=currency,
                                          payee_email=payee_email, create_payee=True)
         name = ctx.payee_name
@@ -257,15 +293,16 @@ class PaymentService:
             ts = db.iso(db.utcnow())
             conn.execute(
                 """INSERT INTO payments (id, sender_id, payee_id, amount_cents, currency, note, message_text,
-                       status, risk_level, risk_score, risk_mode, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       screenshot_path, status, risk_level, risk_score, risk_mode, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (payment_id, db.SENDER_ID, payee["id"], amount_cents, currency, note, message_text,
-                 S.CREATED.value, risk.level, risk.score, risk.mode, ts, ts),
+                 screenshot_id, S.CREATED.value, risk.level, risk.score, risk.mode, ts, ts),
             )
             self._insert_assessment(conn, payment_id, risk)
             db.add_event(conn, payment_id, "sender", "payment.created", {
                 "amount": format_amount(amount_cents), "currency": currency, "payee": name,
                 "payee_is_new": ctx.payee_is_new, "payee_trusted": ctx.payee_trusted,
+                "screenshot": screenshot_id is not None,
             })
             db.add_event(conn, payment_id, "system", "risk.assessed", {
                 "level": risk.level, "score": risk.score, "mode": risk.mode,
@@ -605,6 +642,63 @@ class PaymentService:
         elif status == S.AUTHORIZED:
             self._route(payment_id)
 
+    # ---------------------------------------------------------------- screenshots
+
+    def read_screenshot(self, image_base64: str, mime_type: str) -> dict:
+        """Save the screenshot and transcribe the conversation in it. The sender confirms the text before it is
+        checked; if the AI cannot read it, the screenshot is still kept and shown to the guardian."""
+        ext = SCREENSHOT_TYPES.get(mime_type)
+        if ext is None:
+            raise Invalid("Please choose a PNG, JPEG or WebP image.")
+        payload = image_base64.split(",", 1)[1] if image_base64.startswith("data:") else image_base64
+        try:
+            data = base64.b64decode(payload, validate=True)
+        except (binascii.Error, ValueError):
+            raise Invalid("That file could not be read as an image.") from None
+        if len(data) > self.settings.max_screenshot_bytes:
+            raise Invalid(f"Please choose an image smaller than {self.settings.max_screenshot_bytes // 1_000_000} MB.")
+        if not _looks_like(ext, data):
+            raise Invalid("That file is not a PNG, JPEG or WebP image.")
+
+        screenshot_id = f"{hashlib.sha256(data).hexdigest()[:32]}.{ext}"
+        folder = self.settings.upload_path
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / screenshot_id
+        if not path.exists():
+            path.write_bytes(data)
+
+        provider = getattr(self.assessor, "provider", None)
+        if provider is None:
+            outcome = ai_mod.TranscriptOutcome(error="AI check not configured", error_kind="not_configured")
+        else:
+            outcome = ai_mod.transcribe_screenshot(provider, base64.b64encode(data).decode(), mime_type)
+        self._event(None, "sender", "screenshot.read", {
+            "screenshot_id": screenshot_id, "read": outcome.ok, "messages": outcome.message_count,
+            "own_messages_skipped": outcome.own_messages_skipped, "error_kind": outcome.error_kind,
+            "model": outcome.model, "cached": outcome.cached, "latency_ms": outcome.latency_ms,
+        })
+        return {
+            "screenshot_id": screenshot_id,
+            "url": f"/screenshots/{screenshot_id}",
+            "read": outcome.ok,
+            "text": outcome.text,
+            "sender": outcome.sender,
+            "messages_found": outcome.message_count,
+            "own_messages_skipped": outcome.own_messages_skipped,
+            "error": None if outcome.ok else SCREENSHOT_HELP.get(outcome.error_kind or "", SCREENSHOT_RETRY),
+            "model": outcome.model,
+            "cached": outcome.cached,
+            "latency_ms": outcome.latency_ms,
+        }
+
+    def screenshot_file(self, screenshot_id: str, *, invalid: bool = False) -> Path:
+        path = self.settings.upload_path / screenshot_id
+        if not SCREENSHOT_ID.match(screenshot_id) or not path.is_file():
+            if invalid:
+                raise Invalid("That screenshot was not found. Please add it again.")
+            raise NotFound("Screenshot not found.")
+        return path
+
     # ---------------------------------------------------------------- messages
 
     def add_message(self, payment_id: str, from_role: str, body: str) -> dict:
@@ -801,6 +895,7 @@ def _serialize(row: sqlite3.Row) -> dict:
         "last_error": row["last_error"],
         "is_seed": bool(row["is_seed"]),
         "category": row["category"] if "category" in row.keys() else None,
+        "screenshot_url": f"/screenshots/{row['screenshot_path']}" if row["screenshot_path"] else None,
         "final": status in TERMINAL,
         "text": status_text(status.value, row["void_reason"]),
         "can": {

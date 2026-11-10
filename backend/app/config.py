@@ -47,6 +47,8 @@ class Settings(BaseSettings):
 
     # App
     database_path: str = "data/safepay.db"
+    upload_dir: str = "data/uploads"  # screenshots the sender adds (git-ignored)
+    max_screenshot_bytes: int = 4_000_000
     cors_origins: str = "http://localhost:5173"
 
     @field_validator("sandbox_card_expiry")
@@ -87,6 +89,11 @@ class Settings(BaseSettings):
     @property
     def database_file(self) -> Path:
         path = Path(self.database_path)
+        return path if path.is_absolute() else REPO_ROOT / path
+
+    @property
+    def upload_path(self) -> Path:
+        path = Path(self.upload_dir)
         return path if path.is_absolute() else REPO_ROOT / path
 
     @property
