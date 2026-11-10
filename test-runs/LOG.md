@@ -4,6 +4,20 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Judge · Insights charts (AG Charts)
+
+- **Run by:** Claude, on a separate port and database.
+- **Mode:** judge (fake PayPal + stored AI replies), after one full rehearsal (all three scenarios passed) plus one extra open hold for the scenario 1 payee.
+- **Actual:**
+  - Payments over time: seven seeded past payments as single captured columns; today stacked as 1 captured, 2 stopped, 1 still open, with legend. Caption says it includes earlier history.
+  - Top scam categories: Government impersonation 2, Contractor 1, Bank impersonation 1 (thin brand-blue bars).
+  - Recipients flagged most often: Officer Collins 2, Gutter Pros 1, Secure Holdings LLC 1.
+  - "Show as a table" views list the same numbers with amounts.
+  - Phone width (400 px): category names wrap instead of being cut off.
+- **Found and fixed during the run:** horizontal bars showed "No data to display" (category axis needs `position: 'left'`); charts overflowed their cards (explicit height); long names cut off on phones (label wrapping).
+- **Screenshots:** [insights-charts](screenshots/2026-11-10-insights-charts.png), [insights-tables](screenshots/2026-11-10-insights-tables.png), [insights-phone](screenshots/2026-11-10-insights-phone.png).
+- **Verdict:** Pass.
+
 ## 2026-11-10 · Live · "Ask your activity" questions (Gemini)
 
 - **Run by:** Claude, on a separate port and database.

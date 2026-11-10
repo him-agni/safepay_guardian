@@ -14,7 +14,7 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 | 4 Sender screen | Tue eve | **Done Nov 9** | See "Phase 4 scope" | All three outcomes (sent, warned, held) work end to end in the browser |
 | 5 Guardian screens | Wed AM | **Done Nov 9** | See "Phase 5 scope" | Both sides drive all three demo scenarios |
 | 6 Demo prep | Wed early PM | **Done Nov 9** | Seed/reset script, `demo/` messages, cached demo AI replies, fake-mode check, rehearse 3x | Clean run of all 3 scenarios on the real sandbox |
-| 6b Upgrades | Tue Nov 10 | In progress (1-5 done) | See "Phase 6b scope" (agreed Nov 9) | Items 1-4 done and re-rehearsed; 5-6 if time |
+| 6b Upgrades | Tue Nov 10 | In progress (1-6 done) | See "Phase 6b scope" (agreed Nov 9) | Items 1-4 done and re-rehearsed; 5-6 if time |
 | 7 Ship | Wed | Not started | README, secret scan, fresh-clone test, optional hosted no-keys demo on Render (only if time), video, Devpost submit | Submission shows as submitted |
 | 8 Buffer | Thu AM | — | Fixes only; stop by noon Central | |
 
@@ -52,7 +52,7 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 3. **Done Nov 10.** **Screenshot analysis** (2-3 h): upload a screenshot, Gemini extracts the conversation, the sender confirms the extracted text, then the unchanged engine runs; evidence is grounded in the confirmed text; the guardian sees the image and the text. Demo scenario 3 switches to uploading our own made-up text-message screenshot (pasted text stays as fallback).
 4. **Done Nov 10.** **Held-out evaluation** (2.5-3 h): about 60 new cases, never used for tuning, reported separately from the 16-case development set, even if the numbers drop. About 30 scams across about 15 current categories and about 10 adversarial/robustness cases, written in our own words from scam patterns published by the FTC, FBI IC3 and AARP (each case cites its source); about 20 legitimate cases including tricky ones. Plus about 8 real messages from a public labelled SMS dataset, only after verifying its license (with attribution). Stored replies also extend replay mode.
 5. **Done Nov 10.** **"Ask your activity"** (2-3 h): a plain-English question becomes an AG Grid filter via Gemini structured output, validated against known columns and operators, shown as chips; filter-only, never acts on money; stored replies for demo questions.
-6. **AG Charts Community on Insights** (1-1.5 h): category chart, held vs captured over time, frequently flagged recipients (small `/stats` addition).
+6. **Done Nov 10.** **AG Charts Community on Insights** (1-1.5 h): category chart, held vs captured over time, frequently flagged recipients (small `/stats` addition).
 7. **Polish and wrap-up** (1.5 h): sender safety-tips box on the hold screen; README "three layers" framing (communication, transaction, payment protection) and a note that production would use PayPal Checkout with payer approval and webhooks; tests, screenshot checks, re-rehearsal, runbook and video script, plan and handoff.
 
 The risk engine and the 16-case evaluation stay frozen throughout.
