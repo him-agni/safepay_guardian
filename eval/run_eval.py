@@ -40,7 +40,11 @@ EVAL_DIR = ROOT / "eval"
 CACHE_DIR = EVAL_DIR / "cache"
 COLUMNS = ("rules", "ai", "hybrid")
 COLUMN_NAMES = {"rules": "Rules only", "ai": "AI only", "hybrid": "Hybrid"}
-GROUP_NAMES = {"legit": "Legit", "scam": "Scam", "ambiguous": "Ambiguous", "adversarial": "Adversarial"}
+GROUP_NAMES = {"legit": "Legit", "scam": "Scam", "ambiguous": "Ambiguous", "adversarial": "Adversarial",
+               "real_scam": "Real scam text", "real_legit": "Real legit text"}
+SCAM_GROUPS = ("scam", "adversarial", "real_scam")
+LEGIT_GROUPS = ("legit", "real_legit")
+DEV_CASES = EVAL_DIR / "cases.json"
 RETRYABLE = {"rate_limited", "timeout", "network", "http"}
 
 
@@ -106,6 +110,7 @@ def run_pass(engine: HybridEngine, cases: list[dict], default_history: list[floa
                 assert ind["spans"], f"{case['id']}: ungrounded AI evidence was kept: {ind}"
         rows.append({
             "id": case["id"], "group": case["group"], "scenario": case["scenario"], "expected": expected,
+            "case_category": case.get("category"), "source": case.get("source"),
             "levels": levels, "ok": {c: levels[c] in expected for c in COLUMNS},
             "cite_required": cites, "cite_missing": missing,
             "score": result.score, "rules_score": comp["rules_score"], "mode": result.mode,
@@ -132,12 +137,13 @@ def pct(n: int, d: int) -> str:
 
 
 def metrics(rows: list[dict]) -> dict:
-    scams = [r for r in rows if r["group"] in ("scam", "adversarial")]
-    legit = [r for r in rows if r["group"] == "legit"]
+    scams = [r for r in rows if r["group"] in SCAM_GROUPS]
+    legit = [r for r in rows if r["group"] in LEGIT_GROUPS]
     m: dict = {"columns": {}}
     for c in COLUMNS:
         m["columns"][c] = {
             "scam_catch": (sum(r["levels"][c] == "high" for r in scams), len(scams)),
+            "scam_caught": (sum(r["levels"][c] in ("medium", "high") for r in scams), len(scams)),
             "false_hold": (sum(r["levels"][c] == "high" for r in legit), len(legit)),
             "accuracy": (sum(r["ok"][c] for r in rows), len(rows)),
             "misses": [r["id"] for r in rows if not r["ok"][c]],
@@ -158,6 +164,12 @@ def metrics(rows: list[dict]) -> dict:
         "citations": (sum(not r["cite_missing"] for r in cite_rows), len(cite_rows)),
         "injection_resistant": bool(d2 and d2["levels"]["hybrid"] == "high"),
         "cached": sum(r["ai_cached"] for r in rows),
+        "has_d2": d2 is not None,
+        "groups": {
+            g: {c: (sum(r["ok"][c] for r in rows if r["group"] == g), sum(1 for r in rows if r["group"] == g))
+                for c in COLUMNS}
+            for g in GROUP_NAMES if any(r["group"] == g for r in rows)
+        },
     })
     return m
 
@@ -186,17 +198,17 @@ def report(rows: list[dict], m: dict, cons: dict | None, meta: dict) -> str:
         f"prompt `{meta['prompt_version']}`, config `{meta['config_version']}`. "
         f"AI replies: {meta['live']} live, {m['cached']} from cache.",
         "",
-        "16 cases written for this project (4 legitimate, 6 scams, 3 ambiguous, 3 adversarial). "
-        "It is a small, self-written set: the numbers show the design works on the cases we chose, "
-        "not a measured real-world fraud rate.",
+        meta["intro"],
         "",
         "## Rules only vs AI only vs hybrid",
         "",
         "| Metric | Target | Rules only | AI only | Hybrid |",
         "|---|---|---|---|---|",
-        f"| Scam catch rate (scam + adversarial cases reaching High) | 100% | "
+        f"| Scam catch rate (scam, adversarial and real scam texts reaching High) | 100% | "
         + " | ".join(pct(*cols[c]["scam_catch"]) for c in COLUMNS) + " |",
-        "| False hold rate (legit cases reaching High) | 0 of 4 | "
+        "| Scams at least warned (Medium or High) | 100% | "
+        + " | ".join(pct(*cols[c]["scam_caught"]) for c in COLUMNS) + " |",
+        f"| False hold rate (legit cases reaching High) | 0 of {cols['hybrid']['false_hold'][1]} | "
         + " | ".join(f"{cols[c]['false_hold'][0]} of {cols[c]['false_hold'][1]}" for c in COLUMNS) + " |",
         "| Level accuracy (in the labelled or allowed level) | report | "
         + " | ".join(pct(*cols[c]["accuracy"]) for c in COLUMNS) + " |",
@@ -212,7 +224,8 @@ def report(rows: list[dict], m: dict, cons: dict | None, meta: dict) -> str:
         f"| Evidence grounding (shown AI evidence found in the input) | 100% by construction "
         f"({m['evidence_kept']} quotes kept, {m['evidence_dropped']} proposed quotes dropped) |",
         f"| Required evidence cited (hybrid) | {pct(*m['citations'])} |",
-        f"| Injection resistance (D2 stays High) | {'Pass' if m['injection_resistant'] else 'FAIL'} |",
+        *([f"| Injection resistance (D2 stays High) | {'Pass' if m['injection_resistant'] else 'FAIL'} |"]
+          if m["has_d2"] else []),
         f"| AI latency, median / slowest | "
         + (f"{m['latency_median_ms']} ms / {m['latency_max_ms']} ms" if m["latency_median_ms"] is not None else "n/a")
         + " |",
@@ -222,6 +235,16 @@ def report(rows: list[dict], m: dict, cons: dict | None, meta: dict) -> str:
             f"| Run-to-run consistency ({meta['repeat']} runs) | AI only identical in {cons['ai'][0]}/{cons['ai'][1]} "
             f"cases{(' (varied: ' + ', '.join(cons['ai'][2]) + ')') if cons['ai'][2] else ''}; hybrid identical in "
             f"{cons['hybrid'][0]}/{cons['hybrid'][1]}{(' (varied: ' + ', '.join(cons['hybrid'][2]) + ')') if cons['hybrid'][2] else ''} |")
+    lines += [
+        "",
+        "## By group (cases in the allowed level)",
+        "",
+        "| Group | Cases | Rules only | AI only | Hybrid |",
+        "|---|---|---|---|---|",
+    ]
+    for g, per in m["groups"].items():
+        lines.append(f"| {GROUP_NAMES[g]} | {per['hybrid'][1]} | "
+                     + " | ".join(pct(*per[c]) for c in COLUMNS) + " |")
     lines += [
         "",
         "## Cases",
@@ -251,8 +274,7 @@ def report(rows: list[dict], m: dict, cons: dict | None, meta: dict) -> str:
         "## How to read this",
         "",
         "- The risk level is a decision aid, not a validated fraud probability. Scores are heuristic sums of weights.",
-        "- Thresholds and weights live in `backend/app/risk/config.py`. They were tuned once on these cases and then "
-        "frozen; see `docs/BUILD_PLAN.md`.",
+        meta["tuning_note"],
         "- AI only maps the model's recommended action straight to a level. Hybrid only lets the AI raise a level, and "
         "only with evidence that literally appears in the message or payment.",
         "",
@@ -266,11 +288,14 @@ def main() -> None:
     parser.add_argument("--rules-only", action="store_true", help="run without any AI")
     parser.add_argument("--repeat", type=int, default=1, help="total passes; extra passes bypass the cache")
     parser.add_argument("--sleep", type=float, default=7.0, help="seconds between live AI calls")
+    parser.add_argument("--cases", type=Path, default=DEV_CASES, help="case file (default: eval/cases.json)")
+    parser.add_argument("--out", default="results", help="report name: writes eval/<out>.md and .json")
     parser.add_argument("--timeout", type=float, default=None,
                         help="AI timeout in seconds for this run (default: AI_TIMEOUT_SECONDS, 12 s in the app)")
     args = parser.parse_args()
 
-    data = json.loads((EVAL_DIR / "cases.json").read_text(encoding="utf-8"))
+    data = json.loads(args.cases.read_text(encoding="utf-8"))
+    held_out = args.cases.resolve() != DEV_CASES.resolve()
     cases, history = data["cases"], data["default_history_dollars"]
     settings = get_settings()
     if args.timeout:
@@ -304,17 +329,26 @@ def main() -> None:
         "model": "none (rules only)" if args.rules_only else settings.gemini_model,
         "prompt_version": ai_mod.PROMPT_VERSION, "config_version": C.CONFIG_VERSION,
         "live": sum(1 for r in rows if r["ai_ok"] and not r["ai_cached"]), "repeat": args.repeat,
+        "intro": data["description"] if held_out else (
+            "16 cases written for this project (4 legitimate, 6 scams, 3 ambiguous, 3 adversarial). "
+            "It is a small, self-written set: the numbers show the design works on the cases we chose, "
+            "not a measured real-world fraud rate."),
+        "tuning_note": (
+            "- These cases were written after the engine was frozen and were never used for tuning: misses are "
+            "reported as they came out, not fixed." if held_out else
+            "- Thresholds and weights live in `backend/app/risk/config.py`. They were tuned once on these cases and "
+            "then frozen; see `docs/BUILD_PLAN.md`."),
         "ai_timeout_seconds": settings.ai_timeout_seconds,
     }
     md = report(rows, m, cons, meta)
-    (EVAL_DIR / "results.md").write_text(md, encoding="utf-8")
-    (EVAL_DIR / "results.json").write_text(json.dumps(
+    (EVAL_DIR / f"{args.out}.md").write_text(md, encoding="utf-8")
+    (EVAL_DIR / f"{args.out}.json").write_text(json.dumps(
         {"meta": meta, "metrics": m, "consistency": cons, "rows": rows,
          "extra_passes": [[{"id": r["id"], "levels": r["levels"]} for r in p] for p in passes[1:]]},
         indent=2, default=list), encoding="utf-8")
     print()
     print(md.split("## Evidence per case")[0])
-    print(f"Saved {EVAL_DIR / 'results.md'}")
+    print(f"Saved {EVAL_DIR / (args.out + '.md')}")
 
 
 if __name__ == "__main__":
