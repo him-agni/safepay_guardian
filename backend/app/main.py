@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Optional
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -25,6 +25,38 @@ from .risk.types import Assessor
 from .state import SCREENSHOT_MEDIA, PaymentError, PaymentService
 
 log = logging.getLogger("safepay")
+
+# The largest legitimate request is a screenshot: at most 4 MB of image, about 5.4 MB as base64 in JSON.
+MAX_BODY_BYTES = 8_000_000
+
+
+class BodySizeLimit:
+    """Refuse oversized request bodies before they are read into memory (pure ASGI, so streaming works)."""
+
+    def __init__(self, app, max_bytes: int = MAX_BODY_BYTES) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        length = dict(scope.get("headers") or []).get(b"content-length")
+        if length is not None and (not length.isdigit() or int(length) > self.max_bytes):
+            response = JSONResponse(status_code=413, content={
+                "error": "too_large", "message": "That request is too large. Screenshots must be under 4 MB."})
+            return await response(scope, receive, send)
+        seen = 0
+
+        async def limited_receive():
+            nonlocal seen
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > self.max_bytes:  # a body sent without Content-Length
+                    raise ValueError("request body too large")
+            return message
+
+        return await self.app(scope, limited_receive, send)
 
 
 def create_app(
@@ -58,6 +90,7 @@ def create_app(
 
     app = FastAPI(title="SafePay Guardian", version="0.2.0", lifespan=lifespan)
     app.state.service = service
+    app.add_middleware(BodySizeLimit)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -107,9 +140,13 @@ def create_app(
         )
 
     @app.get("/payments")
-    def list_payments(status: Optional[str] = None, queue: Optional[str] = None, limit: int = 200) -> dict:
+    def list_payments(
+        status: Optional[str] = Query(default=None, max_length=200),
+        queue: Optional[str] = Query(default=None, max_length=20),
+        limit: int = Query(default=200, ge=1, le=500),
+    ) -> dict:
         statuses = [s.strip().upper() for s in status.split(",")] if status else None
-        return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=min(limit, 500))}
+        return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=limit)}
 
     @app.post("/activity/ask")
     def ask_activity(body: activity_query.AskRequest) -> dict:

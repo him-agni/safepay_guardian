@@ -703,7 +703,11 @@ class PaymentService:
 
     def add_message(self, payment_id: str, from_role: str, body: str) -> dict:
         with self._conn() as conn, db.transaction(conn):
-            self._row(conn, payment_id)
+            row = self._row(conn, payment_id)
+            if S(row["status"]) in TERMINAL:
+                # The conversation is about a decision that is still open; once the payment is final the
+                # thread is closed on both screens, and the server agrees.
+                raise Conflict("This payment is already final, so new messages cannot be added.")
             conn.execute(
                 "INSERT INTO guardian_messages (payment_id, from_role, body, at) VALUES (?, ?, ?, ?)",
                 (payment_id, from_role, body, db.iso(db.utcnow())),
