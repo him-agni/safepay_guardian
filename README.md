@@ -70,7 +70,7 @@ npm run dev          # http://localhost:5173
 Two sides, one app:
 
 - **Sender** (large text, plain words): send money with an optional pasted message; see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons and the suspicious words highlighted; reply to the guardian.
-- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an Activity grid (AG Grid) with sorting and filters; and Insights cards.
+- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an **Activity** case log built with AG Grid (live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and Insights cards.
 
 The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
 

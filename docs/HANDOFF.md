@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 9, 2026, after Phase 6. Next: Phase 6b upgrades on Tue Nov 10 (scope and priority order in BUILD_PLAN.md), then Phase 7 ship on Wed.
+Last updated: Nov 9, 2026, evening. Phase 6b items 1-2 done; next is item 3 (screenshot analysis), then 4-7 (BUILD_PLAN.md), then Phase 7 ship on Wed.
 
 ## Where things stand
 
@@ -12,7 +12,7 @@ Last updated: Nov 9, 2026, after Phase 6. Next: Phase 6b upgrades on Tue Nov 10 
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
 | Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 91 pytest tests and 20 Vitest unit tests, all passing, all offline |
+| Tests | 93 pytest tests and 27 Vitest unit tests, all passing, all offline |
 | Frontend | Both sides done. Sender: send, sent, warning, on hold, declined, messages. Guardian: queue, review (evidence with rule/AI labels, pattern, payee history, hold timer, approve with confirm step, decline with note, retry, ask the payer, audit log), Activity (AG Grid, lazy-loaded), Insights (stat tiles, top categories) |
 | Demo | `demo/README.md` runbook, `demo/scenarios.json`, stored AI replies in `demo/ai-cache/`, `scripts/reset_demo.py` (voids open holds, seeds history), `scripts/demo_rehearsal.py` (plays all three scenarios and checks PayPal). Rehearsed 3x on the real sandbox, all passed. Replay mode lets judges run it with no keys |
 | Not built yet | Fresh-clone test, final README pass, video, Devpost submission (Phase 7). Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
@@ -94,6 +94,9 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - Start uvicorn with `--factory`. Importing `app.main` never touches the real database.
 - SQLite files live in `data/` (git-ignored). Payment ids are UUIDs, so PayPal request ids never repeat after a reset.
 - **Screenshots for checking the UI:** Edge headless works (`msedge --headless=new --screenshot=... --virtual-time-budget=6000`), but give each run its own `--user-data-dir` (runs sharing one attach to the first and are dropped), wait for the file (Edge returns before writing it), and note headless windows have a minimum width of about 500px: for a true 400px phone view, load the app inside a 400px iframe served from the Vite dev server (a `file://` wrapper does not load).
+- **AG Grid update loop:** setting `pinnedBottomRowData` fires `onModelUpdated`; recomputing the totals there must skip unchanged totals (`ActivityPage.tsx` keeps a key) or the page never settles (headless screenshots time out, real browsers burn CPU).
+- AG Grid v36.2 deprecated `tooltipValueGetter`; use `tooltip: (params) => ...`. `PinnedColumnModule` is not exported; column pinning is core.
+- Himani may have her own app running on ports 5173 and 8000: test on other ports (`SAFEPAY_BACKEND=http://localhost:8002 node node_modules/vite/bin/vite.js --port 5174`) and never stop processes you did not start.
 - Git Bash rewrites arguments that start with `/`, so `"#/guardian/..."` passed to a script becomes a Windows path. Prefix with `MSYS_NO_PATHCONV=1`.
 - AG Grid v36 needs each feature's module registered (`ActivityPage.tsx`); the dev-only `ValidationModule` shows a popup naming any missing one (that is how `CellStyleModule` was found).
 - **Stored demo replies only match if the prompt is identical**: same payee, amount, note, message and the same sender history. Reset, then play 1, 2, 3 in order (scenario 2's capture changes the history scenario 3 sees). Scenario 3 is also stored standalone. Changing the prompt or `PROMPT_VERSION` invalidates them: re-run `demo_rehearsal.py --standalone 3` with Gemini on.
@@ -121,3 +124,4 @@ https://paypalaihackathon.devpost.com/rules (WebFetch gets HTTP 403; `curl -A "M
 - **Nov 9, Phase 5.** `GET /stats` and a scam category on list rows. Guardian queue, review, activity grid (AG Grid, loaded only on that tab so the sender's bundle stays ~256 kB), insights. Checked in headless Edge; fixed an AG Grid missing-module error, oversized badges in the grid, truncated columns, header width, doubled brackets, "Not classified" ranked first, and the question box staying open on final payments. All three demo scenarios driven through the app's API on the real sandbox with Gemini; PayPal's own records matched (VOIDED, CAPTURED, VOIDED).
 - **Nov 9, Phase 6.** Demo seed and reset (`app/demo.py`, voids open sandbox holds first), `demo/scenarios.json` and runbook, rehearsal script, replay AI mode for judges. Rehearsed 3 full runs plus scenario 3 alone on the real sandbox: every level, status and AI check as expected, all 10 authorizations matched on PayPal; 4 Gemini replies stored. Judge mode (fake PayPal + replay, no keys) passed the same rehearsal. Timeout kept at 8 s.
 - **Nov 9, planning.** Read the official rules (project valid; two adjustments: trademark-free demo messages, enter the AG Grid prize). Evaluated a second AI review: most of it was already built; adopted screenshot analysis, the "three layers" framing and the safety-tips box; declined Elastic, Render Workflows, APIMatic, Supabase, webhooks and engine changes. Agreed Phase 6b (AG Grid Tier 1 + 2, screenshot analysis, ~60-case held-out evaluation incl. ~8 real SMS, AG Charts) and an optional no-keys Render demo.
+- **Nov 9, Phase 6b items 1-2.** Demo scenario 1 no longer names a brand (new stored reply; re-rehearsed on the sandbox). Activity grid upgraded with AG Grid Community: list rows carry a risk brief (summary, top quoted evidence, rules/AI/stored reply); preset views with counts, evidence tooltips, Top evidence / Checked by / Voids in columns, flashing Status and Decision cells, row styling, date and floating filters, pinned totals row, CSV report, remembered layout, Enter to open, pinned Review button. Found and fixed an update loop between the totals row and the grid, and a v36.2 deprecation.
