@@ -105,6 +105,13 @@ export interface Payment {
   is_seed: boolean
   category: string | null
   final: boolean
+  // Only on GET /payments list rows:
+  risk_brief?: {
+    summary: string
+    checked_by: 'ai' | 'stored_reply' | 'rules'
+    ai_flagged: boolean
+    top_evidence: { type: string; evidence: string; source: 'rule' | 'ai'; label: string }[]
+  } | null
   text: { sender: string; guardian: string }
   can: { confirm: boolean; cancel: boolean; approve: boolean; decline: boolean; retry: boolean }
   // Only on GET /payments/{id} and action responses:
