@@ -47,3 +47,38 @@ def test_rules_only_floor_on_the_eval_set():
         assert levels[case_id] == "high", case_id
     # The rules alone never hold a legitimate payment.
     assert all(levels[c["id"]] != "high" for c in DATA["cases"] if c["group"] == "legit")
+
+
+HELDOUT = json.loads((ROOT / "eval" / "heldout_cases.json").read_text(encoding="utf-8"))
+GROUPS = {"scam", "legit", "ambiguous", "adversarial", "real_scam", "real_legit"}
+
+
+def test_heldout_set_is_well_formed_and_separate_from_the_development_set():
+    cases = HELDOUT["cases"]
+    ids = [c["id"] for c in cases]
+    assert len(ids) == len(set(ids)) >= 60
+    assert not set(ids) & {c["id"] for c in DATA["cases"]}  # no overlap with the tuning set
+    for c in cases:
+        assert c["group"] in GROUPS, c["id"]
+        assert c["expect"]["levels"] and set(c["expect"]["levels"]) <= set(LEVEL_ORDER), c["id"]
+        assert c["source"] in HELDOUT["sources"], c["id"]
+        assert c["payee"]["status"] in ("new", "known", "trusted"), c["id"]
+
+
+def test_real_messages_carry_dataset_row_and_attribution():
+    real = [c for c in HELDOUT["cases"] if c["group"].startswith("real_")]
+    assert len(real) >= 8
+    assert "CC BY 4.0" in HELDOUT["dataset_license"]
+    for c in real:
+        assert c["source"] == "sms_dataset"
+        assert isinstance(c["dataset"]["row"], int) and c["dataset"]["label"].lower() in ("smishing", "ham")
+        assert "\ufffd" not in c["payment"]["message_text"]  # encoding damage repaired
+
+
+def test_heldout_hard_rule_scams_are_held_by_rules_alone():
+    run_eval = _runner()
+    engine = HybridEngine(None)
+    by_id = {c["id"]: c for c in HELDOUT["cases"]}
+    for case_id in ("HS01", "HS24", "HS25", "HD04", "HD07"):  # gift cards, crypto, "scratch the back"
+        ctx = run_eval.build_context(by_id[case_id], HELDOUT["default_history_dollars"])
+        assert engine.assess(ctx).level == "high", case_id
