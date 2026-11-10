@@ -7,7 +7,8 @@ How to rehearse and record the three SafePay Guardian scenarios. The scenario te
 | File | Purpose |
 |---|---|
 | `scenarios.json` | The three scenarios: payee, amount, note, the message to paste, the expected level, and each click |
-| `ai-cache/` | Gemini's replies to the three demo messages, stored during rehearsal, so the recording never waits on the AI or its free-tier quota |
+| `screenshots/` | `bank-fraud-team-text.png`, the made-up text thread uploaded in scenario 3 |
+| `ai-cache/` | Gemini's replies to the three demo messages and to reading the scenario 3 screenshot, stored during rehearsal, so the recording never waits on the AI or its free-tier quota |
 
 ## 1. Start in demo mode
 
@@ -89,22 +90,24 @@ Expected: **Medium risk**, "Please check this payment before it is sent", reason
 
 Say: the system also knows when not to interrupt. No guardian was needed.
 
-### Scenario 3: contextual scam with no keywords (about 1:35 to 2:15)
+### Scenario 3: contextual scam with no keywords, from a screenshot (about 1:35 to 2:15)
 
 Sender window:
 
 - Who: `Secure Holdings LLC`
 - How much: `300`
 - What is it for? *(leave empty)*
-- Message:
+- Under the message box, click **Add a screenshot instead** and choose `demo/screenshots/bank-fraud-team-text.png` (a made-up text thread from a fictional 555 number).
+- Wait for "We read 3 messages from +1 (555) 014-2290 and put them in the box below (we left out your own replies)". Point at the box: the AI copied the scammer's words exactly, and the sender checks them.
+- **Send for check**.
+
+If the screenshot cannot be read (the AI is busy), paste this text instead; it has a stored reply too:
 
   > Good afternoon, this is Daniel from the Fraud Prevention Team at your bank. We noticed unusual sign-in activity on your account. As a precaution, please move $300 to the protected account our security team has set up in your name: Secure Holdings LLC. We will return it once the review is complete. Thank you for your cooperation.
 
-- **Send for check**.
-
 Expected: **High risk**, held. The highlighted words come from the AI ("move $300 to the protected account", "Daniel from the Fraud Prevention Team at your bank"). The rules alone would only have warned.
 
-Guardian window: open it. Show the evidence labelled **AI** and "Similar known scam pattern: Bank fraud team asks to move money to a safe account". Under **Ask the payer**, click the suggestion `Did you speak to this person on the phone?` and **Send**.
+Guardian window: open it. Show the screenshot next to the transcribed text, then the evidence labelled **AI** and "Similar known scam pattern: Bank fraud team asks to move money to a safe account". Under **Ask the payer**, click the suggestion `Did you speak to this person on the phone?` and **Send**.
 
 Sender window: the question appears under "Reply to your guardian". Type `No, it was a text message. It said it was from my bank.` and **Send**.
 

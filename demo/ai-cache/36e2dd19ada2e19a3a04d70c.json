@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 7640,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"this is Daniel from the Fraud Prevention Team at your bank\",\n      \"explanation\": \"The sender is claiming to be from a bank's fraud department, which is a common tactic used by scammers to gain trust.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"move $300 to the protected account\",\n      \"explanation\": \"Banks will never ask you to move your money to a 'protected' or 'safe' account to secure it.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Please do it today so your savings stay safe\",\n      \"explanation\": \"The message uses artificial urgency to pressure the sender into acting quickly without thinking.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common scam where someone pretends to be from your bank to trick you into moving your money. Do not send this payment, as real banks will never ask you to transfer funds to a 'protected' account.\"\n}"
+}

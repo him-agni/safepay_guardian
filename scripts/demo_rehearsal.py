@@ -17,6 +17,7 @@ then, from the repo root with the same DATABASE_PATH:
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 import time
@@ -50,8 +51,20 @@ def reset(settings) -> None:
 def play(api: httpx.Client, sc: dict) -> dict:
     print(f" {sc['id']}: {sc['title']}")
     started = time.monotonic()
+    message, screenshot_id = sc["message"], None
+    if sc.get("screenshot"):
+        image = (ROOT / sc["screenshot"]).read_bytes()
+        shot = api.post("/screenshots", json={"image_base64": base64.b64encode(image).decode(),
+                                              "mime_type": "image/png"}).json()
+        src = "stored reply" if shot.get("cached") else f"{shot.get('latency_ms')} ms"
+        check(shot["read"], f"screenshot read: {shot['messages_found']} received message(s) from "
+                            f"{shot['sender'] or '?'}, {shot['own_messages_skipped']} own reply skipped ({src})"
+                            + ("" if shot["read"] else f": {shot['error']}"))
+        screenshot_id = shot["screenshot_id"]
+        if shot["read"]:
+            message = shot["text"]
     p = api.post("/payments", json={"payee_name": sc["payee"], "amount": sc["amount"], "note": sc["note"],
-                                    "message_text": sc["message"]}).json()
+                                    "message_text": message, "screenshot_id": screenshot_id}).json()
     risk = p["risk"]
     src = "stored reply" if risk["components"].get("ai_cached") else f"{risk['latency_ms']} ms"
     check(p["status"] == sc["expect"]["status"] and risk["level"] == sc["expect"]["level"],

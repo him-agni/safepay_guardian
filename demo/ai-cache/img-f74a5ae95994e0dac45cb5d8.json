@@ -1,0 +1,7 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.1",
+  "image_sha256": "9e7d9fcdb4517e5fb9e74a7d37072ebacc5caf5f1e30376af48950d04b6bbb0e",
+  "latency_ms": 1531,
+  "response": "{\n  \"is_conversation\": true,\n  \"sender\": \"+1 (555) 014-2290\",\n  \"messages\": [\n    {\n      \"from\": \"them\",\n      \"text\": \"Good afternoon, this is Daniel from the Fraud Prevention Team at your bank. We noticed unusual sign-in activity on your account.\"\n    },\n    {\n      \"from\": \"them\",\n      \"text\": \"As a precaution, please move $300 to the protected account our security team has set up in your name: Secure Holdings LLC. We will return it once the review is complete. Thank you for your cooperation.\"\n    },\n    {\n      \"from\": \"me\",\n      \"text\": \"Is this really from my bank?\"\n    },\n    {\n      \"from\": \"them\",\n      \"text\": \"Yes. Please do it today so your savings stay safe.\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+}
