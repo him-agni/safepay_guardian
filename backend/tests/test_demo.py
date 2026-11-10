@@ -35,7 +35,10 @@ def test_reset_seeds_history_that_insights_ignore(tmp_path):
         rows = client.get("/payments").json()["payments"]
         assert len(rows) == len(demo.SEED_PAYMENTS)
         assert all(r["is_seed"] and r["status"] == "CAPTURED" for r in rows)
-        assert client.get("/stats").json()["payments"] == 0
+        stats = client.get("/stats").json()
+        assert stats["payments"] == 0 and stats["flagged_payees"] == []
+        # The timeline shows recent history (marked as past) so the chart has context.
+        assert stats["recent"] and all(r["past"] and r["outcome"] == "captured" for r in stats["recent"])
 
 
 def test_reset_clears_previous_demo_payments(tmp_path):

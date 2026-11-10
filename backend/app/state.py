@@ -814,6 +814,20 @@ class PaymentService:
                 FROM payments p WHERE p.is_seed = 0
                 """
             ).fetchall()
+            since = db.iso(db.utcnow() - timedelta(days=RECENT_DAYS))
+            recent = conn.execute(
+                "SELECT created_at, status, is_seed FROM payments WHERE created_at >= ? ORDER BY created_at",
+                (since,),
+            ).fetchall()
+            payee_rows = conn.execute(
+                f"""
+                SELECT y.name AS payee, p.status, p.amount_cents
+                FROM payments p JOIN payees y ON y.id = p.payee_id
+                WHERE p.is_seed = 0 AND EXISTS (
+                    SELECT 1 FROM events e WHERE e.payment_id = p.id AND e.type = 'status.changed'
+                    AND json_extract(e.detail_json, '$.to') IN ('HELD', 'WARNED'))
+                """
+            ).fetchall()
 
         def bucket(selected: list[sqlite3.Row]) -> dict:
             total = sum(r["amount_cents"] for r in selected)
@@ -826,6 +840,11 @@ class PaymentService:
             categories.setdefault(r["category"] or "uncategorised", []).append(r)
         top = sorted(categories.items(), key=lambda kv: (kv[0] == "uncategorised", -len(kv[1]),
                                                           -sum(r["amount_cents"] for r in kv[1])))
+
+        payees: dict[str, list[sqlite3.Row]] = {}
+        for r in payee_rows:
+            payees.setdefault(r["payee"], []).append(r)
+        flagged = sorted(payees.items(), key=lambda kv: (-len(kv[1]), -sum(r["amount_cents"] for r in kv[1]), kv[0]))
 
         return {
             "payments": len(rows),
@@ -846,7 +865,31 @@ class PaymentService:
             "top_categories": [
                 {"category": cat, **bucket(items)} for cat, items in top[:6]
             ],
+            # Every payment of the last RECENT_DAYS days, seeded history included, so the browser can
+            # group them by its own local day. AUTH_FAILED never reached a decision and is left out.
+            "recent": [
+                {"at": r["created_at"], "outcome": _outcome(r["status"]), "past": bool(r["is_seed"])}
+                for r in recent if r["status"] != S.AUTH_FAILED.value
+            ],
+            "recent_days": RECENT_DAYS,
+            "flagged_payees": [
+                {"payee": name, **bucket(items),
+                 "not_captured": sum(r["status"] in not_captured for r in items)}
+                for name, items in flagged[:5]
+            ],
         }
+
+
+RECENT_DAYS = 30
+
+
+def _outcome(status: str) -> str:
+    """Where a payment ended up, for the Insights timeline: captured, stopped (never captured) or still open."""
+    if status == S.CAPTURED.value:
+        return "captured"
+    if status in (S.VOIDED.value, S.EXPIRED.value):
+        return "stopped"
+    return "open"
 
 
 # The scam category shown in lists: the AI's category, or (when the AI said "none" or did not run) the

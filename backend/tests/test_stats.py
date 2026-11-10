@@ -46,6 +46,31 @@ def test_stats_count_what_happened_without_claiming_money_saved(env):
     assert "saved" not in str(s).lower()
 
 
+def test_stats_timeline_lists_recent_outcomes(env):
+    env.pay("low", "35.00", "Grandson Leo")  # captured automatically
+    declined = env.pay("high", "500.00", "Officer Collins")
+    env.act(declined["id"], "decline")
+    env.pay("high", "200.00", "Bank Security")  # still waiting
+    s = env.client.get("/stats").json()
+    assert s["recent_days"] == 30
+    assert [r["outcome"] for r in s["recent"]] == ["captured", "stopped", "open"]
+    assert not any(r["past"] for r in s["recent"])
+    assert all(r["at"].endswith("Z") for r in s["recent"])
+
+
+def test_stats_flagged_payees_rank_by_how_often_they_were_warned_or_held(env):
+    for _ in range(2):
+        p = env.pay("high", "300.00", "Agent Brooks")
+        env.act(p["id"], "decline")
+    env.pay("medium", "80.00", "Gutter Pros")  # warned, still open
+    env.pay("high", "900.00", "Online Friend")
+    env.pay("low", "35.00", "Grandson Leo")  # never warned or held: not listed
+    flagged = env.client.get("/stats").json()["flagged_payees"]
+    assert [(f["payee"], f["count"], f["not_captured"]) for f in flagged] == [
+        ("Agent Brooks", 2, 2), ("Online Friend", 1, 0), ("Gutter Pros", 1, 0)]
+    assert flagged[0]["total"] == "600.00"
+
+
 def test_list_rows_carry_the_scam_category(env):
     env.pay("high", category="bank_impersonation")
     env.pay("low", payee="Leo")
