@@ -60,7 +60,7 @@ Sender window, "Send money":
 - What is it for? *(leave empty)*
 - Paste the message you received:
 
-  > This is Officer Collins with the IRS. You owe $500 in back taxes. You must pay in Google Play gift cards within 30 minutes or a warrant will be issued for your arrest.
+  > This is Officer Collins with the IRS. You owe $500 in back taxes. You must pay in gift cards within 30 minutes or a warrant will be issued for your arrest.
 
 - Click **Send for check**.
 

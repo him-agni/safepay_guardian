@@ -7,7 +7,7 @@
       "payee": "Officer Collins",
       "amount": "500.00",
       "note": "",
-      "message": "This is Officer Collins with the IRS. You owe $500 in back taxes. You must pay in Google Play gift cards within 30 minutes or a warrant will be issued for your arrest.",
+      "message": "This is Officer Collins with the IRS. You owe $500 in back taxes. You must pay in gift cards within 30 minutes or a warrant will be issued for your arrest.",
       "expect": {"status": "HELD", "level": "high"},
       "steps": [
         {"who": "guardian", "action": "decline", "note": "This is a scam, Mum. The IRS never asks for gift cards. I'll call you tonight."}
