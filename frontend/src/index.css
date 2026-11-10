@@ -426,6 +426,30 @@ mark {
   color: var(--ink-soft);
 }
 
+.tips {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1.1rem;
+  background: #f4f8fe;
+  border: 2px solid #b9c9e4;
+  border-left: 6px solid var(--brand);
+  border-radius: 10px;
+}
+.tips h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.4rem;
+}
+.tips ul {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+.tips li {
+  margin-bottom: 0.4rem;
+  line-height: 1.45;
+}
+.tips p {
+  margin: 0.5rem 0 0;
+}
+
 .thread {
   margin: 1.25rem 0;
   display: grid;

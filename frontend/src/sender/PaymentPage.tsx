@@ -5,6 +5,7 @@ import { duration, money, reasons, summaryRepeatsReasons } from '../format'
 import { useCountdown, usePoll } from '../hooks'
 import { recall, remember } from '../store'
 import type { Action, Payment } from '../types'
+import { safetyTips } from './safetyTips'
 
 export function PaymentPage({ id }: { id: string }) {
   const initial = recall(id)
@@ -195,6 +196,7 @@ function StatusCard({
           <AiBanner risk={p.risk} />
           <Reasons p={p} heading="Why it is on hold" />
           <Evidence p={p} />
+          <SafetyTips p={p} />
           <MessageThread
             payment={p}
             role="sender"
@@ -238,4 +240,20 @@ function StatusCard({
         </section>
       )
   }
+}
+
+/** Calm advice while the payment waits: one tip for this kind of scam, then two that always apply. */
+function SafetyTips({ p }: { p: Payment }) {
+  const tips = safetyTips(p.category ?? p.risk?.category)
+  return (
+    <aside className="tips" aria-labelledby="tips-title">
+      <h2 id="tips-title">While you wait: staying safe</h2>
+      <ul>
+        {tips.map((tip) => (
+          <li key={tip}>{tip}</li>
+        ))}
+      </ul>
+      <p className="muted small">If anyone is pressuring you right now, it is fine to stop and talk to your guardian first.</p>
+    </aside>
+  )
 }
