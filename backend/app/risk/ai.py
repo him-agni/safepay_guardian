@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import os
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +28,8 @@ from .text import ground, payment_fields
 from .types import PaymentContext
 
 PROMPT_VERSION = "2026-11-10.2"
+
+log = logging.getLogger("safepay.ai")
 
 CATEGORIES = (
     "government_impersonation", "bank_impersonation", "tech_support", "grandparent", "family_impersonation",
@@ -209,15 +214,20 @@ class GeminiProvider:
             raise AIError("unavailable", "AI service is busy (high demand)")
         if resp.status_code != 200:
             raise AIError("http", f"AI call failed: HTTP {resp.status_code}")
-        data = resp.json()
-        candidates = data.get("candidates") or []
-        if not candidates:
-            reason = (data.get("promptFeedback") or {}).get("blockReason", "no candidates")
-            raise AIError("blocked", f"AI returned no answer ({reason})")
-        parts_out = (candidates[0].get("content") or {}).get("parts") or []
-        text = "".join(p.get("text", "") for p in parts_out if not p.get("thought"))
+        try:
+            data = resp.json()
+            candidates = data.get("candidates") or []
+            if not candidates:
+                reason = (data.get("promptFeedback") or {}).get("blockReason", "no candidates")
+                raise AIError("blocked", f"AI returned no answer ({reason})")
+            parts_out = (candidates[0].get("content") or {}).get("parts") or []
+            text = "".join(p.get("text", "") for p in parts_out if not p.get("thought"))
+            finish = candidates[0].get("finishReason")
+        except (ValueError, AttributeError, TypeError, IndexError):
+            # A 200 whose body is not the expected shape (proxy error page, truncated JSON, API change).
+            raise AIError("invalid_json", "AI reply could not be read") from None
         if not text:
-            raise AIError("blocked", f"AI returned no text ({candidates[0].get('finishReason')})")
+            raise AIError("blocked", f"AI returned no text ({finish})")
         return text
 
     def check(self) -> bool:
@@ -240,9 +250,48 @@ class CachingProvider:
         self.model = inner.model
         self.dir = cache_dir
         self.offline = offline
-        self.last_was_cached = False
-        self.last_latency_ms: int | None = None
+        # Requests run on several threads at once; each one must read back its own call's details.
+        self._last = threading.local()
         self.dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def last_was_cached(self) -> bool:
+        return getattr(self._last, "cached", False)
+
+    @last_was_cached.setter
+    def last_was_cached(self, value: bool) -> None:
+        self._last.cached = value
+
+    @property
+    def last_latency_ms(self) -> int | None:
+        return getattr(self._last, "latency_ms", None)
+
+    @last_latency_ms.setter
+    def last_latency_ms(self, value: int | None) -> None:
+        self._last.latency_ms = value
+
+    @staticmethod
+    def _load(path: Path) -> dict | None:
+        """A stored reply, or None if there is none or it cannot be read (then the model is asked again)."""
+        try:
+            stored = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError):
+            log.warning("ignoring unreadable stored AI reply %s", path.name)
+            return None
+        return stored if isinstance(stored, dict) and isinstance(stored.get("response"), str) else None
+
+    @staticmethod
+    def _store(path: Path, record: dict) -> None:
+        """Write to a temporary file, then rename: a concurrent reader never sees half a file."""
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+        try:
+            tmp.write_text(json.dumps(record, indent=2), encoding="utf-8")
+            os.replace(tmp, path)
+        except OSError:
+            log.warning("could not store AI reply %s", path.name)
+            tmp.unlink(missing_ok=True)
 
     def _path(self, system: str, user: str) -> Path:
         key = hashlib.sha256(f"{self.model}|{PROMPT_VERSION}|{system}|{user}".encode()).hexdigest()[:24]
@@ -251,8 +300,8 @@ class CachingProvider:
     def generate(self, system: str, user: str, schema: dict) -> str:
         self.last_latency_ms = None
         path = self._path(system, user)
-        if path.exists():
-            stored = json.loads(path.read_text(encoding="utf-8"))
+        stored = self._load(path)
+        if stored is not None:
             self.last_was_cached = True
             self.last_latency_ms = stored.get("latency_ms")  # latency of the original live call
             return stored["response"]
@@ -262,9 +311,8 @@ class CachingProvider:
         started = time.monotonic()
         text = self.inner.generate(system, user, schema)
         self.last_latency_ms = int((time.monotonic() - started) * 1000)
-        path.write_text(json.dumps({"model": self.model, "prompt_version": PROMPT_VERSION,
-                                    "latency_ms": self.last_latency_ms, "response": text}, indent=2),
-                        encoding="utf-8")
+        self._store(path, {"model": self.model, "prompt_version": PROMPT_VERSION,
+                           "latency_ms": self.last_latency_ms, "response": text})
         return text
 
     def generate_with_image(self, system: str, user: str, image_b64: str, mime_type: str, schema: dict) -> str:
@@ -272,8 +320,8 @@ class CachingProvider:
         image_hash = hashlib.sha256(image_b64.encode()).hexdigest()
         key = hashlib.sha256(f"{self.model}|{TRANSCRIBE_PROMPT_VERSION}|{system}|{user}|{image_hash}".encode())
         path = self.dir / f"img-{key.hexdigest()[:24]}.json"
-        if path.exists():
-            stored = json.loads(path.read_text(encoding="utf-8"))
+        stored = self._load(path)
+        if stored is not None:
             self.last_was_cached, self.last_latency_ms = True, stored.get("latency_ms")
             return stored["response"]
         self.last_was_cached = False
@@ -282,9 +330,8 @@ class CachingProvider:
         started = time.monotonic()
         text = self.inner.generate_with_image(system, user, image_b64, mime_type, schema)
         self.last_latency_ms = int((time.monotonic() - started) * 1000)
-        path.write_text(json.dumps({"model": self.model, "prompt_version": TRANSCRIBE_PROMPT_VERSION,
-                                    "image_sha256": image_hash, "latency_ms": self.last_latency_ms,
-                                    "response": text}, indent=2), encoding="utf-8")
+        self._store(path, {"model": self.model, "prompt_version": TRANSCRIBE_PROMPT_VERSION,
+                           "image_sha256": image_hash, "latency_ms": self.last_latency_ms, "response": text})
         return text
 
     def check(self) -> bool:
@@ -337,6 +384,10 @@ def analyze(provider: AIProvider, ctx: PaymentContext, patterns: list[dict]) -> 
         raw = provider.generate(SYSTEM_PROMPT, build_user_prompt(ctx, patterns), RESPONSE_SCHEMA)
     except AIError as exc:
         out.error, out.error_kind = exc.message, exc.kind
+        return out
+    except Exception:  # never let an AI problem stop a payment: fall back to the rules
+        log.exception("unexpected AI failure")
+        out.error, out.error_kind = "AI check failed unexpectedly", "unexpected"
         return out
     finally:
         out.latency_ms = int((time.monotonic() - started) * 1000)
@@ -451,6 +502,10 @@ def transcribe_screenshot(provider: AIProvider, image_b64: str, mime_type: str) 
         raw = provider.generate_with_image(TRANSCRIBE_SYSTEM, TRANSCRIBE_USER, image_b64, mime_type, TRANSCRIBE_SCHEMA)
     except AIError as exc:
         out.error, out.error_kind = exc.message, exc.kind
+        return out
+    except Exception:
+        log.exception("unexpected AI failure while reading a screenshot")
+        out.error, out.error_kind = "Could not read the screenshot", "unexpected"
         return out
     finally:
         out.cached = bool(getattr(provider, "last_was_cached", False))
