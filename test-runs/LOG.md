@@ -12,7 +12,7 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 - **Expected:** High risk, on hold, evidence highlighted; AI summary shown.
 - **Actual:** High risk, on hold. Reasons listed (gift cards, urgency, arrest threat, above the $300 limit, new payee) and "IRS", "gift cards", "within 30 minutes", "warrant", "arrest" highlighted. Banner: "AI check unavailable, rules only". The audit log shows the Gemini call **timed out after 8.1 s** (`gemini-3.1-flash-lite`), so the engine fell back to rules.
 - **Verdict:** Pass for safety (the hard rule held the payment and the fallback was announced). The AI part did not run.
-- **Follow-up:** Second live timeout from this model (the first was demo scenario 2 on Nov 9). The demo uses stored replies so the video is unaffected, but live use is degraded when the model is slow. Options were raised with Himani: keep 8 s (decided Nov 9), add one quick retry, or try another model.
+- **Follow-up:** Second live timeout from this model (the first was demo scenario 2 on Nov 9). The demo uses stored replies so the video is unaffected, but live use is degraded when the model is slow. Options were raised with Himani; she chose to raise the app timeout from 8 s to 12 s (Nov 10).
 - **Screenshot:** [screenshots/2026-11-10-sender-irs-scam-held-ai-timeout.png](screenshots/2026-11-10-sender-irs-scam-held-ai-timeout.png)
 
 ## 2026-11-10 · Manual · Guardian activity grid after seeding

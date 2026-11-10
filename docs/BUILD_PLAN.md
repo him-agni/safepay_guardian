@@ -76,7 +76,7 @@ The risk engine and the 16-case evaluation stay frozen throughout.
 | 1 | Fake PayPal | In-process fake behind a `PaymentGateway` interface; used by pytest and by `PAYPAL_MODE=fake` so judges can run without credentials |
 | 2 | Payees | Labels only. In the sandbox every payment settles to one sandbox merchant; README says so |
 | 3 | AI | Gemini, structured JSON, behind a small provider interface; no key = rules only. Model `gemini-3.1-flash-lite` (switched from `gemini-2.5-flash` on Nov 9 after its 20 requests/day free limit ran out) |
-| 4 | AI timeout | 8 s in the app (decided Nov 9): a slow AI falls back to rules with the banner. The demo uses stored replies (`demo/ai-cache`) so the recording does not depend on live latency |
+| 4 | AI timeout | 12 s in the app (raised from 8 s on Nov 10 after two live timeouts from `gemini-3.1-flash-lite`): a slow AI still falls back to rules with the banner. The demo uses stored replies (`demo/ai-cache`) so the recording does not depend on live latency |
 | 5 | D3 / demo 3 | Keep "safe account" as a hard rule; D3 and demo 3 use a paraphrase ("the protected account our security team set up") so the AI is what catches it |
 | 6 | Extra rules | "Changed number / new phone" (+25) and "new payee with no note and no message" (+15) |
 | 7 | Ask the payer | Promoted from Medium to High (used in demo 3) |

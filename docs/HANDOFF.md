@@ -87,7 +87,7 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 ## Gotchas
 
 - **Gemini free tier is 20 requests/day per model** (it was for `gemini-2.5-flash`). Every payment created with the AI on costs one request. For demo rehearsals and the video, set `AI_CACHE_DIR` so repeated demo messages reuse stored replies. `gemini-3.1-flash-lite` has its own quota, limit unknown; about 80 calls worked on Nov 9.
-- **`gemini-3.1-flash-lite` sometimes takes over 8 s.** The app then falls back to rules with the banner (by design). The eval uses `--timeout 25`.
+- **`gemini-3.1-flash-lite` sometimes takes over 8 s** (twice in live use, Nov 9 and 10). The app timeout is now 12 s; past it, the app falls back to rules with the banner (by design). The eval uses `--timeout 25`.
 - **Never read or print `.env`.** Check keys with a script that prints only "set/EMPTY". The card expiry there is `MM/YYYY`; config converts it to PayPal's `YYYY-MM`.
 - **Commits:** only "Himani Agrawal" with `100171053+him-agni@users.noreply.github.com` (set in the repo's git config), no co-author lines, small commits with descriptive bodies. Shell heredocs break on apostrophes, so commit through a small Python script with `git commit -F -`. Scan before pushing: `git log -p origin/main..HEAD | grep -E "AIza|[0-9]{15,16}"`.
 - **Evaluation is frozen** (prompt `2026-11-10.2`, config `2026-11-10.2`). Changing `risk/config.py`, the prompt or the rules changes the results: re-run the eval and record it.
@@ -100,7 +100,7 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - Git Bash rewrites arguments that start with `/`, so `"#/guardian/..."` passed to a script becomes a Windows path. Prefix with `MSYS_NO_PATHCONV=1`.
 - AG Grid v36 needs each feature's module registered (`ActivityPage.tsx`); the dev-only `ValidationModule` shows a popup naming any missing one (that is how `CellStyleModule` was found).
 - **Stored demo replies only match if the prompt is identical**: same payee, amount, note, message and the same sender history. Reset, then play 1, 2, 3 in order (scenario 2's capture changes the history scenario 3 sees). Scenario 3 is also stored standalone. Changing the prompt or `PROMPT_VERSION` invalidates them: re-run `demo_rehearsal.py --standalone 3` with Gemini on.
-- The AI timeout stays at 8 s (decided Nov 9).
+- The AI timeout is 12 s (raised from 8 s on Nov 10). Restart the backend after changing it; `.env` sets `AI_TIMEOUT_SECONDS`.
 - Sender wording comes from the backend's `text.sender`; the frontend never says "authorization voided" on the sender side (`format.ts` has a test for it).
 - Known wart, left on purpose: in the Phase 2 history, deleting `risk/stub.py` landed in the first Phase 2 commit, so a few intermediate commits do not start. The final code is fine.
 

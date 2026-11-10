@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     ai_provider: Literal["gemini", "replay", "none"] = "none"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.1-flash-lite"
-    ai_timeout_seconds: float = 8.0
+    ai_timeout_seconds: float = 12.0
     ai_cache_dir: str = ""  # e.g. "eval/cache": reuse stored AI replies for identical prompts
 
     # Holds and background work

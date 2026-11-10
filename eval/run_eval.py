@@ -267,7 +267,7 @@ def main() -> None:
     parser.add_argument("--repeat", type=int, default=1, help="total passes; extra passes bypass the cache")
     parser.add_argument("--sleep", type=float, default=7.0, help="seconds between live AI calls")
     parser.add_argument("--timeout", type=float, default=None,
-                        help="AI timeout in seconds for this run (default: AI_TIMEOUT_SECONDS, 8s in the app)")
+                        help="AI timeout in seconds for this run (default: AI_TIMEOUT_SECONDS, 12 s in the app)")
     args = parser.parse_args()
 
     data = json.loads((EVAL_DIR / "cases.json").read_text(encoding="utf-8"))
