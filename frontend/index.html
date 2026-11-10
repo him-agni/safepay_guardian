@@ -3,8 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="SafePay Guardian holds risky payments until someone you trust has looked. A PayPal sandbox demo." />
     <title>SafePay Guardian</title>
+    <script>
+      // Apply the theme before the page paints, so it never flashes: ?theme=light|dark for this page load
+      // (screenshots, recordings), else the saved choice, else the device setting.
+      try {
+        var t = new URLSearchParams(location.search).get('theme')
+        if (t !== 'light' && t !== 'dark') t = localStorage.getItem('safepay.theme')
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = t
+        document.documentElement.style.colorScheme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
