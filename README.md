@@ -141,6 +141,25 @@ If the AI is not configured, times out (12 s), hits a rate limit or returns inva
 
 It prints the case table, the metrics (scam catch rate, false hold rate, level accuracy, JSON validity, evidence grounding, injection resistance, latency) and a rules-only vs AI-only vs hybrid comparison, and saves them to [eval/results.md](eval/results.md).
 
+### Held-out test set
+
+The 16 cases above were used to tune the engine once before it was frozen, so they flatter it. [eval/heldout_cases.json](eval/heldout_cases.json) has **69 cases written after the freeze and never used for tuning**: 30 scams written from scam patterns published by the FTC and the FBI (each case cites its source page), 14 everyday legitimate payments, 6 ambiguous cases, 8 adversarial cases (disguised words, a scam in Spanish, lookalike letters, attempts to instruct the AI), and 11 real text messages from a public research dataset (8 scams, 3 legitimate). Results are reported as they came out ([eval/results_heldout.md](eval/results_heldout.md)):
+
+| | Rules only | AI only | Hybrid |
+|---|---|---|---|
+| Scams held (High) | 22/46 (48%) | 44/46 (96%) | **44/46 (96%)** |
+| Scams at least warned | 36/46 (78%) | 46/46 (100%) | **46/46 (100%)** |
+| Legitimate payments held | 0 of 17 | 0 of 17 | **0 of 17** |
+| Level accuracy | 47/69 (68%) | 67/69 (97%) | **68/69 (99%)** |
+
+The one hybrid miss: a trusted grandson asking for $300 for concert tickets "on sale in an hour" was held for the guardian, where a warning was expected (over-cautious, not unsafe). The AI alone let a $400 payment to a stranger with no explanation through as Low; the rules kept it at Medium. JSON was valid for 69/69 replies and no quote was dropped. It is still a self-written set plus a handful of real messages, not a measured real-world fraud rate.
+
+```bash
+.venv/Scripts/python eval/run_eval.py --cases eval/heldout_cases.json --out results_heldout --cached
+```
+
+Real messages: Mishra, S. & Soni, D. (2022). *SMS Phishing Dataset for Machine Learning and Pattern Recognition*. Mendeley Data, v1. [doi:10.17632/f45bkkt8pr.1](https://doi.org/10.17632/f45bkkt8pr.1), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copied verbatim except for repairing encoding damage (a lost pound sign or space, HTML entities).
+
 ## Payment safety
 
 - Every payment uses PayPal `AUTHORIZE` intent, so nothing is captured until the app, the sender or the guardian decides.

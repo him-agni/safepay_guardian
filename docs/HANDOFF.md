@@ -2,7 +2,7 @@
 
 For whoever picks this up next, whether Himani or a fresh AI session: what exists, how to run and check it, what to watch out for, and what comes next. **Update this file at the end of every phase.** The plan itself (phases, decisions, design rules) is in [BUILD_PLAN.md](BUILD_PLAN.md).
 
-Last updated: Nov 10, 2026. Upgrades 1-3 done (trademark-free demo, activity case log, screenshot reading); next is the held-out evaluation, then 5-7 (BUILD_PLAN.md), then shipping on Wed.
+Last updated: Nov 10, 2026. Upgrades 1-4 done (trademark-free demo, activity case log, screenshot reading, 69-case held-out evaluation); next is "Ask your activity", AG Charts and polish (BUILD_PLAN.md), then shipping on Wed.
 
 ## Where things stand
 
@@ -11,8 +11,8 @@ Last updated: Nov 10, 2026. Upgrades 1-3 done (trademark-free demo, activity cas
 | Backend (FastAPI) | Complete: payments, state machine, sweeper, recovery, audit log, hybrid risk engine, `/assess`, `/stats`, `/health` |
 | PayPal | Real sandbox works end to end (authorize, capture, void), cross-checked on PayPal by `scripts/api_smoke.py` |
 | AI | `gemini-3.1-flash-lite`, structured JSON, grounding, rules-only fallback |
-| Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)) |
-| Tests | 108 pytest tests and 29 Vitest unit tests, all passing, all offline |
+| Evaluation | Frozen: hybrid 16/16, rules only 12/16, AI only 15/16; scams 9/9; 0/4 legit held; consistent over 3 runs ([eval/results.md](../eval/results.md)). **Held-out (69 cases, never tuned on):** hybrid 68/69, scams held 44/46 and all warned, 0/17 legit held ([eval/results_heldout.md](../eval/results_heldout.md)) |
+| Tests | 111 pytest tests and 29 Vitest unit tests, all passing, all offline |
 | Frontend | Both sides done. Sender: send, sent, warning, on hold, declined, messages. Guardian: queue, review (evidence with rule/AI labels, pattern, payee history, hold timer, approve with confirm step, decline with note, retry, ask the payer, audit log), Activity (AG Grid, lazy-loaded), Insights (stat tiles, top categories) |
 | Demo | `demo/README.md` runbook, `demo/scenarios.json`, stored AI replies in `demo/ai-cache/`, `scripts/reset_demo.py` (voids open holds, seeds history), `scripts/demo_rehearsal.py` (plays all three scenarios and checks PayPal). Rehearsed 3x on the real sandbox, all passed. Replay mode lets judges run it with no keys |
 | Not built yet | Fresh-clone test, final README pass, video, Devpost submission (Phase 7). Optional: screenshot analysis (stretch), trusted-payee management UI (Medium) |
@@ -90,6 +90,7 @@ Environment: Python 3.10.2 in `.venv` (the `py` launcher defaults to 3.14, so us
 - **`gemini-3.1-flash-lite` sometimes takes over 8 s** (twice in live use, Nov 9 and 10). The app timeout is now 12 s; past it, the app falls back to rules with the banner (by design). The eval uses `--timeout 25`.
 - **Never read or print `.env`.** Check keys with a script that prints only "set/EMPTY". The card expiry there is `MM/YYYY`; config converts it to PayPal's `YYYY-MM`.
 - **Commits:** only "Himani Agrawal" with `100171053+him-agni@users.noreply.github.com` (set in the repo's git config), no co-author lines, small commits with descriptive bodies. Shell heredocs break on apostrophes, so commit through a small Python script with `git commit -F -`. Scan before pushing: `git log -p origin/main..HEAD | grep -E "AIza|[0-9]{15,16}"`.
+- **Held-out set:** `eval/heldout_cases.json` was written after the freeze and must never be used for tuning. Run it with `--cases eval/heldout_cases.json --out results_heldout`. The 11 real messages come from a CC BY 4.0 dataset: keep the attribution in the file and the README.
 - **Evaluation is frozen** (prompt `2026-11-10.2`, config `2026-11-10.2`). Changing `risk/config.py`, the prompt or the rules changes the results: re-run the eval and record it.
 - Start uvicorn with `--factory`. Importing `app.main` never touches the real database.
 - SQLite files live in `data/` (git-ignored). Payment ids are UUIDs, so PayPal request ids never repeat after a reset.

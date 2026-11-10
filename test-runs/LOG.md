@@ -4,6 +4,15 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Live · Held-out evaluation, 69 cases (Gemini)
+
+- **Run by:** Claude.
+- **Mode:** `eval/run_eval.py --cases eval/heldout_cases.json --out results_heldout --timeout 30 --sleep 4`, frozen engine (prompt and config `2026-11-10.2`), `gemini-3.1-flash-lite`.
+- **Expected:** reported as it comes out; no tuning afterwards (agreed in advance).
+- **Actual:** hybrid 68/69 in the allowed level; scams held 44/46 (the other 2 warned, both allowed); 0 of 17 legitimate payments held; rules alone 47/69, AI alone 67/69. JSON 69/69 valid, 138 quotes kept, 0 dropped. Four calls timed out once and succeeded on retry; median 1.3 s, slowest 26.6 s.
+- **Misses:** HA04 (trusted grandson, concert tickets "on sale in an hour", $300) was held, where a warning was expected: the AI called it family impersonation despite the trusted-payee rule. AI-only also missed HA03 ($400 to a stranger, no explanation: AI said Low, the rules kept it Medium).
+- **Verdict:** Pass. Results committed as they came out.
+
 ## 2026-11-10 · Manual · Sender: scenario 3 from a screenshot (demo mode)
 
 - **Run by:** Himani, in her browser.
