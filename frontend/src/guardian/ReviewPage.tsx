@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, ApiError } from '../api'
-import { AiBanner, ErrorNote, HighlightedText, MessageThread, RiskBadge } from '../components'
+import { AiBanner, ErrorNote, HighlightedText, MessageThread, RiskBadge, ScreenshotFigure } from '../components'
 import { categoryLabel, clockTime, duration, money, timeAgo } from '../format'
 import { useCountdown, usePoll } from '../hooks'
 import { recall, remember } from '../store'
@@ -274,6 +274,13 @@ function Evidence({ p }: { p: Payment }) {
       )}
       <HighlightedText text={p.message_text} spans={spans} field="message" label="The full message the sender received" />
       <HighlightedText text={p.note} spans={spans} field="note" label="The sender's note" />
+      {p.screenshot_url && (
+        <ScreenshotFigure
+          url={p.screenshot_url}
+          caption="The screenshot the sender added"
+          note="The message text above was read from it by AI and checked by the sender. Compare them here."
+        />
+      )}
       <p className="muted small">
         Every quoted word above appears in the message or payment.
         {dropped > 0 &&

@@ -456,6 +456,50 @@ mark {
   gap: 0.35rem;
 }
 
+/* ---------- screenshots ---------- */
+
+.shot-pick {
+  margin: 0.25rem 0 0.5rem;
+}
+.shot-status {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #f7f8fa;
+}
+.shot-status img {
+  width: 96px;
+  max-height: 180px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.shot-status p {
+  margin: 0 0 0.5rem;
+}
+.shot-warn {
+  color: var(--high-ink);
+  font-weight: 600;
+}
+.shot {
+  margin: 1rem 0;
+}
+.shot img {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.shot figcaption {
+  margin-top: 0.4rem;
+}
+
 /* ---------- guardian ---------- */
 
 .app-main.role-guardian,

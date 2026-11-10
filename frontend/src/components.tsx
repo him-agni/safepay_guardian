@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { api, ApiError } from './api'
+import { api, ApiError, screenshotSrc } from './api'
 import { LEVEL_WORD } from './format'
 import { segment } from './highlight'
 import type { EvidenceSpan, Level, Payment, Risk } from './types'
@@ -35,6 +35,22 @@ export function ErrorNote({ error }: { error: Error | null | undefined }) {
     <div className="banner banner-error" role="alert">
       {error.message}
     </div>
+  )
+}
+
+/** A screenshot the sender added, shown small; opens full size in a new tab. */
+export function ScreenshotFigure({ url, caption, note }: { url: string; caption: string; note?: string }) {
+  const src = screenshotSrc(url)
+  return (
+    <figure className="shot">
+      <a href={src} target="_blank" rel="noreferrer" aria-label={`${caption}, open full size`}>
+        <img src={src} alt={caption} />
+      </a>
+      <figcaption>
+        <strong>{caption}</strong>
+        {note && <span className="muted small"> {note}</span>}
+      </figcaption>
+    </figure>
   )
 }
 

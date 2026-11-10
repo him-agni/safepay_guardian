@@ -75,6 +75,17 @@ export function summaryRepeatsReasons(summary: string, list: string[]): boolean 
   return sentences.length > 0 && sentences.every((s) => list.includes(s))
 }
 
+export const SCREENSHOT_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+export const SCREENSHOT_MAX_BYTES = 4_000_000
+
+/** Checked on the device before uploading, in plain words. */
+export function screenshotProblem(file: { type: string; size: number }): string | null {
+  if (!SCREENSHOT_TYPES.includes(file.type)) return 'Please choose a screenshot saved as a PNG, JPEG or WebP picture.'
+  if (file.size > SCREENSHOT_MAX_BYTES) return 'That picture is too large. Please choose one smaller than 4 MB.'
+  if (file.size === 0) return 'That file is empty. Please choose another picture.'
+  return null
+}
+
 /** Accepts "$1,250.50" style input from the form. */
 export function cleanAmount(raw: string): string {
   return raw.replace(/[$,\s]/g, '')

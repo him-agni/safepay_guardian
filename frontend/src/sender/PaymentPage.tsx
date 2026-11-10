@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, ApiError } from '../api'
-import { AiBanner, ErrorNote, HighlightedText, MessageThread, RiskBadge } from '../components'
+import { AiBanner, ErrorNote, HighlightedText, MessageThread, RiskBadge, ScreenshotFigure } from '../components'
 import { duration, money, reasons, summaryRepeatsReasons } from '../format'
 import { useCountdown, usePoll } from '../hooks'
 import { recall, remember } from '../store'
@@ -100,6 +100,7 @@ function Evidence({ p }: { p: Payment }) {
     <>
       <HighlightedText text={p.message_text} spans={spans} field="message" label="The message you received" />
       <HighlightedText text={p.note} spans={spans} field="note" label="Your note" />
+      {p.screenshot_url && <ScreenshotFigure url={p.screenshot_url} caption="Your screenshot" />}
     </>
   )
 }

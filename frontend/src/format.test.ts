@@ -69,3 +69,20 @@ describe('duration', () => {
     expect(duration(-5)).toBe('0 s')
   })
 })
+
+describe('screenshot check', () => {
+  it('accepts PNG, JPEG and WebP under 4 MB', async () => {
+    const { screenshotProblem } = await import('./format')
+    expect(screenshotProblem({ type: 'image/png', size: 200_000 })).toBeNull()
+    expect(screenshotProblem({ type: 'image/jpeg', size: 3_999_999 })).toBeNull()
+    expect(screenshotProblem({ type: 'image/webp', size: 1 })).toBeNull()
+  })
+
+  it('explains what is wrong in plain words', async () => {
+    const { screenshotProblem } = await import('./format')
+    expect(screenshotProblem({ type: 'image/gif', size: 100 })).toMatch(/PNG, JPEG or WebP/)
+    expect(screenshotProblem({ type: 'application/pdf', size: 100 })).toMatch(/PNG, JPEG or WebP/)
+    expect(screenshotProblem({ type: 'image/png', size: 4_000_001 })).toMatch(/smaller than 4 MB/)
+    expect(screenshotProblem({ type: 'image/png', size: 0 })).toMatch(/empty/)
+  })
+})

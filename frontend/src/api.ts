@@ -1,7 +1,7 @@
 // The only place the frontend talks to the network. Everything goes to our own backend (/api),
 // which is the only thing that talks to PayPal and the AI model.
 
-import type { Action, Health, Payment, Stats } from './types'
+import type { Action, Health, Payment, ScreenshotRead, Stats } from './types'
 
 const BASE = '/api'
 
@@ -64,7 +64,20 @@ export interface NewPayment {
   amount: string
   note: string
   message_text: string
+  screenshot_id?: string
 }
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new ApiError('We could not open that file. Please try another picture.', 0))
+    reader.readAsDataURL(file)
+  })
+}
+
+/** The screenshot's address through our backend (the browser never talks to anything else). */
+export const screenshotSrc = (url: string) => BASE + url
 
 export const api = {
   health: () => request<Health>('/health'),
@@ -83,6 +96,11 @@ export const api = {
     request<Payment>(`/payments/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       body: JSON.stringify(note ? { note } : {}),
+    }),
+  readScreenshot: async (file: File) =>
+    request<ScreenshotRead>('/screenshots', {
+      method: 'POST',
+      body: JSON.stringify({ image_base64: await readAsDataUrl(file), mime_type: file.type }),
     }),
   addMessage: (id: string, from_role: 'sender' | 'guardian', body: string) =>
     request<Payment>(`/payments/${encodeURIComponent(id)}/messages`, {

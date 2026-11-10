@@ -104,6 +104,7 @@ export interface Payment {
   last_error: string | null
   is_seed: boolean
   category: string | null
+  screenshot_url: string | null
   final: boolean
   // Only on GET /payments list rows:
   risk_brief?: {
@@ -129,6 +130,21 @@ export interface Health {
 }
 
 export type Action = 'confirm' | 'cancel' | 'approve' | 'decline' | 'retry'
+
+/** POST /screenshots: the saved screenshot and what the AI read from it. */
+export interface ScreenshotRead {
+  screenshot_id: string
+  url: string
+  read: boolean
+  text: string
+  sender: string
+  messages_found: number
+  own_messages_skipped: number
+  error: string | null
+  model: string | null
+  cached: boolean
+  latency_ms: number | null
+}
 
 export interface Bucket {
   count: number
