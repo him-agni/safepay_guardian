@@ -359,6 +359,13 @@ export function ActivityPage() {
       </div>
 
       <ErrorNote error={poll.error} />
+      {poll.data && poll.data.length === 0 && (
+        <div className="banner banner-info" role="status">
+          <strong>There are no payments in this database yet.</strong> Send one from the sender side, or load the demo
+          history with <code>scripts/reset_demo.py</code> (see the README). If you expected payments here, check that
+          the backend was started with the right <code>DATABASE_PATH</code>.
+        </div>
+      )}
       <div className="grid-box">
         <AgGridReact<ActivityRow>
           ref={gridRef}
