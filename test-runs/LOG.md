@@ -4,6 +4,15 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Judge · Redesign: light and dark mode, Home page
+
+- **Run by:** Claude, on a separate port and database.
+- **Mode:** judge (fake PayPal + stored AI replies); full rehearsal first (passed), then one open hold.
+- **Checked:** Home in light and dark at desktop width and dark at phone width; send form (light); hold screen with safety tips (dark); guardian review (light and dark); Activity grid (dark); Insights tiles and charts (dark). Text contrast of every theme token pair computed: all WCAG AA or better (lowest 5.5:1, links on tinted panels). Chart colours validated per mode with the dataviz palette checker.
+- **Found and fixed during the run:** the "AND" connector in the How it works flow was invisible; the four steps wrapped 3 + 1; the header's role switch wrapped on sender pages and the theme button on phones; the Insights hero tile blended into its card in dark mode.
+- **Screenshots:** [home light](screenshots/2026-11-10-redesign-home-light.png), [home dark](screenshots/2026-11-10-redesign-home-dark.png), [home phone dark](screenshots/2026-11-10-redesign-home-phone-dark.png), [send](screenshots/2026-11-10-redesign-send-light.png), [hold dark](screenshots/2026-11-10-redesign-hold-dark.png), [review light](screenshots/2026-11-10-redesign-review-light.png), [review dark](screenshots/2026-11-10-redesign-review-dark.png), [activity dark](screenshots/2026-11-10-redesign-activity-dark.png), [insights dark](screenshots/2026-11-10-redesign-insights-dark.png).
+- **Verdict:** Pass.
+
 ## 2026-11-10 · Judge · Rate limits and the safety-tips box
 
 - **Run by:** Claude, on a separate port and database.

@@ -67,8 +67,9 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-Two sides, one app:
+Two sides, one app, in light and dark mode (it follows the device setting; the moon/sun button in the header switches and remembers it):
 
+- **Home** (`#/`): who it is for, how to use it from the sender's and the guardian's side, how it works (PayPal authorization, rules and AI, one risk level, a person decides), why to trust it (fail-safe design and the held-out test results) and common questions.
 - **Sender** (large text, plain words): send money with an optional pasted message or a **screenshot of the conversation** (the AI copies the received messages word for word, leaves out the sender's own replies, and the sender checks the text before sending); see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons, the suspicious words highlighted and a **"While you wait: staying safe"** box (one tip for the kind of scam detected, then general advice such as "nobody real asks for gift cards, crypto or a wire transfer"); reply to the guardian.
 - **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of every PayPal call; an **Activity** case log built with AG Grid (**"Ask about your activity"**: a plain-English question such as "high-risk payments that I declined" becomes validated grid filters shown as removable chips, read-only; live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and **Insights** with stat tiles and three AG Charts Community charts (payments over time by outcome, top scam categories, recipients flagged most often), each with a "Show as a table" view.
 

@@ -44,7 +44,9 @@ After a rehearsal, reset again before recording.
 - Two browser windows side by side: left **Sender** at http://localhost:5173/#/send, right **Guardian** at http://localhost:5173/#/guardian.
 - Zoom 110 to 125% so text reads on video. Close other tabs and notifications.
 - Check http://localhost:5173/api/health shows `"paypal": {"mode": "sandbox", ...}` and `"ai": {..., "mode": "hybrid"}`.
-- The "Sandbox: test money only" label is in the header: show it once on camera.
+- The "Test money only" label is in the header (it says PayPal sandbox on hover): show it once on camera.
+- Optional opening shot (about 5 seconds): http://localhost:5173/#/ shows the Home page hero; scroll once to "How it works".
+- Light or dark mode: the app follows the computer's setting. To force one for the recording, open the windows with `?theme=light` or `?theme=dark` before the `#`, for example http://localhost:5173/?theme=light#/send (this does not change the saved choice).
 
 **Play the scenarios in order (1, 2, 3) after a reset.** The stored AI replies match that order exactly. Scenario 3 is also stored on its own, for a re-take of just that part (reset first). Anything else calls Gemini live, which usually takes 1 to 2 seconds but can exceed the 12-second limit; the app then falls back to rules and shows "AI check unavailable, rules only".
 

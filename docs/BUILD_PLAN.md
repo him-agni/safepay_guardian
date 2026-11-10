@@ -54,6 +54,7 @@ Source: "SafePay Guardian: Full Build Spec" (Nov 9, 2026). This file is the plan
 5. **Done Nov 10.** **"Ask your activity"** (2-3 h): a plain-English question becomes an AG Grid filter via Gemini structured output, validated against known columns and operators, shown as chips; filter-only, never acts on money; stored replies for demo questions.
 6. **Done Nov 10.** **AG Charts Community on Insights** (1-1.5 h): category chart, held vs captured over time, frequently flagged recipients (small `/stats` addition).
 6a. **Done Nov 10.** **Security and robustness review** of the whole codebase before polish (see the handoff progress log).
+6c. **Done Nov 10.** **Redesign** (user request, after the security review): indigo and violet look with light and dark mode across every screen (AG Grid and AG Charts included), Inter bundled for offline use, and a Home page (who it is for, how to use it for both sides, how it works, why trust it, FAQs). Style direction taken from a Dribbble motion concept the user shared; shapes and copy are our own.
 7. **Polish and wrap-up** (1.5 h): sender safety-tips box on the hold screen (**done Nov 10**, plus per-visitor rate limits after the security review); README "three layers" framing (communication, transaction, payment protection) and a note that production would use PayPal Checkout with payer approval and webhooks; tests, screenshot checks, re-rehearsal, runbook and video script, plan and handoff.
 
 The risk engine and the 16-case evaluation stay frozen throughout.
