@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     max_screenshot_bytes: int = 4_000_000
     cors_origins: str = "http://localhost:5173"
 
+    # Requests per minute per visitor (IP address); 0 turns a limit off. Generous for people, not for scripts.
+    rate_limit_payments: int = 20  # POST /payments
+    rate_limit_screenshots: int = 10  # POST /screenshots (uploads plus an AI call each)
+    rate_limit_ai_checks: int = 20  # POST /assess and POST /activity/ask
+    rate_limit_messages: int = 30  # POST /payments/{id}/messages
+
     @field_validator("sandbox_card_expiry")
     @classmethod
     def _normalise_expiry(cls, value: str) -> str:

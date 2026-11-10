@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Optional
 
-from fastapi import FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -20,6 +20,7 @@ from . import activity_query
 from .config import Settings, get_settings
 from .models import AssessRequest, CreatePaymentRequest, DecisionRequest, MessageRequest, ScreenshotRequest
 from .paypal import PaymentGateway, build_gateway
+from .ratelimit import RateLimiter, TooManyRequests
 from .risk.engine import build_assessor
 from .risk.types import Assessor
 from .state import SCREENSHOT_MEDIA, PaymentError, PaymentService
@@ -71,6 +72,12 @@ def create_app(
     service = PaymentService(settings, gateway, assessor)
     health_cache: dict = {"at": 0.0, "paypal_reachable": None, "ai_reachable": None}
     ai_provider = getattr(assessor, "provider", None)
+    limiter = RateLimiter({
+        "payments": settings.rate_limit_payments,
+        "screenshots": settings.rate_limit_screenshots,
+        "ai_checks": settings.rate_limit_ai_checks,
+        "messages": settings.rate_limit_messages,
+    })
 
     async def sweeper() -> None:
         while True:
@@ -100,9 +107,11 @@ def create_app(
 
     @app.exception_handler(PaymentError)
     async def payment_error(_: Request, exc: PaymentError) -> JSONResponse:
+        headers = {"Retry-After": str(exc.retry_after)} if isinstance(exc, TooManyRequests) else None
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.code, "message": exc.message, "payment": exc.payment},
+            headers=headers,
         )
 
     @app.get("/health")
@@ -131,7 +140,7 @@ def create_app(
             "hold_timeout_seconds": settings.hold_timeout_seconds,
         }
 
-    @app.post("/payments", status_code=201)
+    @app.post("/payments", status_code=201, dependencies=[Depends(limiter.dependency("payments"))])
     def create_payment(body: CreatePaymentRequest) -> dict:
         """Run the risk engine, authorize on PayPal, then capture, warn or hold by risk level."""
         return service.create_payment(
@@ -148,7 +157,7 @@ def create_app(
         statuses = [s.strip().upper() for s in status.split(",")] if status else None
         return {"payments": service.list_payments(statuses=statuses, queue=queue, limit=limit)}
 
-    @app.post("/activity/ask")
+    @app.post("/activity/ask", dependencies=[Depends(limiter.dependency("ai_checks"))])
     def ask_activity(body: activity_query.AskRequest) -> dict:
         """Turn a plain-English question into validated filters for the activity grid (read-only)."""
         result = activity_query.ask(ai_provider, body, date.today())
@@ -158,7 +167,7 @@ def create_app(
         })
         return result.as_dict()
 
-    @app.post("/screenshots")
+    @app.post("/screenshots", dependencies=[Depends(limiter.dependency("screenshots"))])
     def read_screenshot(body: ScreenshotRequest) -> dict:
         """Save a screenshot of the conversation and transcribe it for the sender to confirm."""
         return service.read_screenshot(body.image_base64, body.mime_type)
@@ -192,13 +201,14 @@ def create_app(
     _action("decline", "Guardian declines a held payment, which voids (idempotent).")
     _action("retry", "Guardian retries a failed capture or void.")
 
-    @app.post("/assess")
+    @app.post("/assess", dependencies=[Depends(limiter.dependency("ai_checks"))])
     def assess(body: AssessRequest) -> dict:
         """Run the risk engine on a message (and optional payment details) without creating a payment."""
         return service.assess_only(message_text=body.message_text, note=body.note,
                                    amount_cents=body.amount_cents, payee_name=body.payee_name)
 
-    @app.post("/payments/{payment_id}/messages", status_code=201)
+    @app.post("/payments/{payment_id}/messages", status_code=201,
+              dependencies=[Depends(limiter.dependency("messages"))])
     def add_message(payment_id: str, body: MessageRequest) -> dict:
         return service.add_message(payment_id, body.from_role, body.body)
 
