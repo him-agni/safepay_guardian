@@ -9,41 +9,53 @@ import {
 } from 'ag-charts-community'
 import { AgCharts } from 'ag-charts-react'
 import { categoryLabel, money } from '../format'
+import { useTheme, type Theme } from '../theme'
 import type { Stats } from '../types'
 import { dailyOutcomes, plural, type DayOutcomes } from './insights'
 
 // Only what these three bar charts use, so the Insights bundle stays small.
 const MODULES = [BarSeriesModule, CategoryAxisModule, NumberAxisModule, LegendModule]
 
-// Single-series charts use the brand blue. The timeline's three outcomes use a categorical palette checked
-// for colour-vision deficiency (worst adjacent pair ΔE 9.2). Aqua is below 3:1 contrast on white, so the
+// Colours per mode, each validated against that mode's card surface with the dataviz palette checker:
+// single-series charts use the brand violet; the timeline's three outcomes are a categorical palette
+// (worst all-pairs colour-vision ΔE 9.2 light / 9.4 dark). Light-mode aqua is below 3:1 on white, so the
 // chart always has a legend and a table view.
-const BRAND = '#0b4fa3'
-const OUTCOME_COLOURS = { captured: '#2a78d6', stopped: '#eb6834', open: '#1baf7a' }
-
-const THEME: AgChartThemeOverrides = {
-  common: {
-    background: { fill: '#ffffff' },
-    padding: { top: 8, right: 16, bottom: 8, left: 8 },
+const CHART_COLOURS = {
+  light: {
+    surface: '#ffffff', text: '#17132e', subtle: '#5d5880', grid: '#ebe8f5', brand: '#5b3fe0',
+    outcomes: { captured: '#2a78d6', stopped: '#eb6834', open: '#1baf7a' },
+  },
+  dark: {
+    surface: '#1c1544', text: '#f2effd', subtle: '#aaa3d0', grid: '#2e2662', brand: '#8a76f2',
+    outcomes: { captured: '#3987e5', stopped: '#d95926', open: '#199e70' },
   },
 }
 
-const baseOptions = {
-  theme: {
-    baseTheme: 'ag-default',
-    params: {
-      fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif",
-      fontSize: 13,
-      textColor: '#14181f',
-      subtleTextColor: '#5b6474',
-      gridLineColor: '#e3e7ee',
+function baseOptions(mode: Theme) {
+  const c = CHART_COLOURS[mode]
+  const overrides: AgChartThemeOverrides = {
+    common: {
+      background: { fill: c.surface },
+      padding: { top: 8, right: 16, bottom: 8, left: 8 },
     },
-    overrides: THEME,
-  },
-  animation: { enabled: false },
-  // The card sets the height; without this AG Charts keeps its 300px default minimum.
-  minHeight: 0,
-} satisfies Partial<AgCartesianChartOptions>
+  }
+  return {
+    theme: {
+      baseTheme: mode === 'dark' ? 'ag-default-dark' : 'ag-default',
+      params: {
+        fontFamily: "'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif",
+        fontSize: 13,
+        textColor: c.text,
+        subtleTextColor: c.subtle,
+        gridLineColor: c.grid,
+      },
+      overrides,
+    },
+    animation: { enabled: false },
+    // The card sets the height; without this AG Charts keeps its 300px default minimum.
+    minHeight: 0,
+  } satisfies Partial<AgCartesianChartOptions>
+}
 
 /** Counts are whole payments: keep axis ticks on whole numbers. */
 const countAxis = {
@@ -101,13 +113,14 @@ const TIMELINE_HEIGHT = 300
 const barHeight = (rows: number) => Math.max(140, rows * 40 + 64)
 
 export function CategoryChart({ stats }: { stats: Stats }) {
+  const mode = useTheme()
   const rows = useMemo(
     () => stats.top_categories.map((r) => ({ label: categoryLabel(r.category), count: r.count, total: r.total })),
     [stats.top_categories],
   )
   const options = useMemo<AgCartesianChartOptions>(
     () => ({
-      ...baseOptions,
+      ...baseOptions(mode),
       data: rows,
       height: barHeight(rows.length),
       series: [
@@ -117,7 +130,7 @@ export function CategoryChart({ stats }: { stats: Stats }) {
           xKey: 'label',
           yKey: 'count',
           yName: 'Payments',
-          fill: BRAND,
+          fill: CHART_COLOURS[mode].brand,
           cornerRadius: 4,
           tooltip: {
             renderer: ({ datum }) => ({
@@ -132,7 +145,7 @@ export function CategoryChart({ stats }: { stats: Stats }) {
       ],
       axes: horizontalAxes,
     }),
-    [rows],
+    [rows, mode],
   )
   return (
     <ChartCard
@@ -177,11 +190,12 @@ const OUTCOMES = [
 ] as const
 
 export function TimelineChart({ stats }: { stats: Stats }) {
+  const mode = useTheme()
   const days = useMemo(() => dailyOutcomes(stats.recent, stats.recent_days), [stats.recent, stats.recent_days])
   const hasPast = days.some((d) => d.past > 0)
   const options = useMemo<AgCartesianChartOptions>(
     () => ({
-      ...baseOptions,
+      ...baseOptions(mode),
       data: days,
       height: TIMELINE_HEIGHT,
       series: OUTCOMES.map(({ key, name }) => ({
@@ -190,8 +204,8 @@ export function TimelineChart({ stats }: { stats: Stats }) {
         yKey: key,
         yName: name,
         stacked: true,
-        fill: OUTCOME_COLOURS[key],
-        stroke: '#ffffff',
+        fill: CHART_COLOURS[mode].outcomes[key],
+        stroke: CHART_COLOURS[mode].surface, // a 2px gap in the card colour between stacked segments
         strokeWidth: 2,
         cornerRadius: 4,
         tooltip: {
@@ -207,7 +221,7 @@ export function TimelineChart({ stats }: { stats: Stats }) {
       axes: { x: { type: 'category', paddingInner: 0.35, label: { avoidCollisions: true } }, y: countAxis },
       legend: { enabled: true, position: 'bottom' },
     }),
-    [days],
+    [days, mode],
   )
   return (
     <ChartCard
@@ -260,10 +274,11 @@ export function TimelineChart({ stats }: { stats: Stats }) {
 }
 
 export function FlaggedPayeesChart({ stats }: { stats: Stats }) {
+  const mode = useTheme()
   const rows = stats.flagged_payees
   const options = useMemo<AgCartesianChartOptions>(
     () => ({
-      ...baseOptions,
+      ...baseOptions(mode),
       data: rows,
       height: barHeight(rows.length),
       series: [
@@ -273,7 +288,7 @@ export function FlaggedPayeesChart({ stats }: { stats: Stats }) {
           xKey: 'payee',
           yKey: 'count',
           yName: 'Warned or held',
-          fill: BRAND,
+          fill: CHART_COLOURS[mode].brand,
           cornerRadius: 4,
           tooltip: {
             renderer: ({ datum }) => ({
@@ -289,7 +304,7 @@ export function FlaggedPayeesChart({ stats }: { stats: Stats }) {
       ],
       axes: horizontalAxes,
     }),
-    [rows],
+    [rows, mode],
   )
   return (
     <ChartCard

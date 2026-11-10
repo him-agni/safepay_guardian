@@ -34,6 +34,7 @@ import { ErrorNote, RiskBadge } from '../components'
 import { duration, money } from '../format'
 import { go, usePoll } from '../hooks'
 import { LEVEL_ORDER } from '../levels'
+import { useTheme } from '../theme'
 import type { Level } from '../types'
 import { compareDay, csvSafe, PRESETS, presetTest, toRow, totalRow, type ActivityRow, type PresetId } from './activity'
 import { ASK_COLUMNS, describeFilter, describeSort, toFilterModel, type AskFilter, type AskResult, type AskSort } from './ask'
@@ -63,17 +64,35 @@ ModuleRegistry.registerModules([
   ...(import.meta.env.DEV ? [ValidationModule] : []),
 ])
 
-const theme = themeQuartz.withParams({
+// Same sizes in both modes; colours follow the app's light and dark tokens (index.css).
+const gridBase = {
   fontFamily: 'inherit',
   fontSize: 16,
   headerFontSize: 15,
   rowHeight: 52,
   headerHeight: 50,
-  accentColor: '#0b4fa3',
-  foregroundColor: '#14181f',
-  headerBackgroundColor: '#eef1f5',
-  borderColor: '#c9d0db',
-})
+  wrapperBorderRadius: 16,
+}
+const GRID_THEMES = {
+  light: themeQuartz.withParams({
+    ...gridBase,
+    browserColorScheme: 'light',
+    accentColor: '#5b3fe0',
+    backgroundColor: '#ffffff',
+    foregroundColor: '#17132e',
+    headerBackgroundColor: '#f6f4fd',
+    borderColor: '#e0dcf0',
+  }),
+  dark: themeQuartz.withParams({
+    ...gridBase,
+    browserColorScheme: 'dark',
+    accentColor: '#a593ff',
+    backgroundColor: '#1c1544',
+    foregroundColor: '#f2effd',
+    headerBackgroundColor: '#251d55',
+    borderColor: '#342b6a',
+  }),
+}
 
 // Remembered per browser: column widths, order, sort and filters, plus the chosen preset view.
 const STATE_KEY = 'safepay.activity.grid.v1'
@@ -251,6 +270,7 @@ const rowClassRules: RowClassRules<ActivityRow> = {
 const CSV_COLUMNS = ['created', 'payee', 'amount', 'level', 'category', 'evidence', 'status', 'decision', 'decidedBy', 'checkedBy']
 
 export function ActivityPage() {
+  const theme = GRID_THEMES[useTheme()]
   const poll = usePoll(() => api.listPayments({ limit: 500 }), 3000, 'guardian-activity')
   const gridRef = useRef<AgGridReact<ActivityRow>>(null)
   const [search, setSearch] = useState('')
