@@ -1,13 +1,14 @@
 import { lazy, Suspense } from 'react'
 import { api } from '../api'
 import { usePoll } from '../hooks'
-import { InsightsPage } from './InsightsPage'
 import { QueuePage } from './QueuePage'
 import { ReviewPage } from './ReviewPage'
 
 // AG Grid is large; load it only when the guardian opens the Activity tab, so the sender's
 // screens stay small and fast.
 const ActivityPage = lazy(() => import('./ActivityPage').then((m) => ({ default: m.ActivityPage })))
+// Same for AG Charts on the Insights tab.
+const InsightsPage = lazy(() => import('./InsightsPage').then((m) => ({ default: m.InsightsPage })))
 
 /** Guardian routes: #/guardian (queue), #/guardian/p/{id}, #/guardian/activity, #/guardian/insights. */
 export function GuardianArea({ parts }: { parts: string[] }) {
@@ -36,7 +37,9 @@ export function GuardianArea({ parts }: { parts: string[] }) {
           <ActivityPage />
         </Suspense>
       ) : view === 'insights' ? (
-        <InsightsPage />
+        <Suspense fallback={<section className="card">Loading insights…</section>}>
+          <InsightsPage />
+        </Suspense>
       ) : (
         <QueuePage payments={queue.data} error={queue.error} />
       )}

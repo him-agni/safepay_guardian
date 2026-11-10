@@ -167,4 +167,15 @@ export interface Stats {
   by_level: Record<Level, number>
   rules_only_checks: number
   top_categories: (Bucket & { category: string })[]
+  /** Every payment of the last `recent_days` days, seeded past history included (marked `past`). */
+  recent: RecentPayment[]
+  recent_days: number
+  /** Payees most often warned or held (seeded history excluded). */
+  flagged_payees: (Bucket & { payee: string; not_captured: number })[]
+}
+
+export interface RecentPayment {
+  at: string
+  outcome: 'captured' | 'stopped' | 'open'
+  past: boolean
 }
