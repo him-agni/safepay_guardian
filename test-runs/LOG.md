@@ -4,6 +4,18 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Judge · Rate limits and the safety-tips box
+
+- **Run by:** Claude, on a separate port and database.
+- **Mode:** judge (fake PayPal + stored AI replies).
+- **Actual:**
+  - 21 risk checks (`POST /assess`) in a row from one address: the first 20 answered 200, the 21st got 429 "Too many requests. Please wait 47 seconds and try again." with `Retry-After: 47`.
+  - Scenario 1 message held (High). The hold screen shows "While you wait: staying safe" between the highlighted message and the guardian conversation: "Government agencies do not demand payment by phone or text, and never threaten arrest to get paid.", then the gift card and call-back tips.
+  - Phone width (400 px): the box wraps cleanly.
+  - The AI check showed "rules only" because this database had more payment history than the one the stored reply was recorded with (expected in judge mode after earlier runs; the rehearsal resets first and gets the stored reply).
+- **Screenshots:** [hold screen](screenshots/2026-11-10-sender-hold-safety-tips.png), [phone](screenshots/2026-11-10-sender-hold-safety-tips-phone.png).
+- **Verdict:** Pass.
+
 ## 2026-11-10 · Automated · Security and robustness review
 
 - **Run by:** Claude.

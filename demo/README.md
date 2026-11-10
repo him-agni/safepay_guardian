@@ -65,7 +65,7 @@ Sender window, "Send money":
 
 - Click **Send for check**.
 
-Expected: **High risk**, "This payment is on hold", with "IRS", "gift cards", "within 30 minutes", "warrant" and "arrest" highlighted.
+Expected: **High risk**, "This payment is on hold", with "IRS", "gift cards", "within 30 minutes", "warrant" and "arrest" highlighted, and a "While you wait: staying safe" box whose first tip is about government agencies. Scroll past it briefly on camera.
 
 Guardian window: the payment appears under "Waiting for you" within 3 seconds. Open it, point at the evidence (Hard rule: gift cards; AI: impersonation), type the note `This is a scam, Mum. The IRS never asks for gift cards. I'll call you tonight.` and click **Decline and void**.
 
