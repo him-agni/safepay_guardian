@@ -4,6 +4,21 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Automated · Security and robustness review
+
+- **Run by:** Claude.
+- **Checks:** `npm audit` (0 vulnerabilities), `pip-audit -r backend/requirements.txt` (no known vulnerabilities), full git history scanned for keys and secrets (none), manual review of every backend module and the frontend's HTML, link and CSV output.
+- **Found and fixed (each with a regression test that fails on the old code):**
+  - A Gemini 200 reply that is not JSON crashed payment creation → now an AI error, the payment is checked on rules only.
+  - Stored-reply cache: "stored reply" flag shared between concurrent requests; half-written cache files could crash a read → per-thread flags, atomic writes, unreadable files ignored.
+  - "Ask your activity": an `inf` amount from the AI caused a 500 → non-finite numbers dropped.
+  - `GET /payments?limit=-1` removed the row cap → limit must be 1 to 500.
+  - No request size limit → bodies over 8 MB refused with 413 before being read.
+  - Messages could be added to final payments through the API → 409.
+  - CSV report: payee or quote text starting with `=`, `+`, `-` or `@` would run as a spreadsheet formula → written as text.
+- **Not changed, documented:** no login (demo design), no rate limits.
+- **Result:** 130 pytest and 37 Vitest tests pass; lint and build clean.
+
 ## 2026-11-10 · Judge · Insights charts (AG Charts)
 
 - **Run by:** Claude, on a separate port and database.

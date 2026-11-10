@@ -170,11 +170,19 @@ Real messages: Mishra, S. & Soni, D. (2022). *SMS Phishing Dataset for Machine L
 - Held and warned payments are voided when the hold times out (24 hours by default). Silence never captures.
 - Unfinished payments are resumed at startup, and every state change and PayPal call is written to the audit log.
 
+## Security notes
+
+- **Secrets stay on the server.** PayPal credentials, the sandbox card and the Gemini key are read from `.env` (git-ignored) as secret values, are never returned by the API or written to the audit log, and the Gemini key is sent in a header, not the URL. Error messages from PayPal and Gemini are reduced to the status and PayPal's own explanation.
+- **Scam text is treated as hostile.** The message goes to the AI inside a delimiter the scammer cannot predict, with instructions in it reported as manipulation; AI evidence is kept only if it appears word for word in what the sender received; the AI can raise a risk level but never lower one; and "Ask your activity" can only produce filters that are checked against known columns and values. A broken or unexpected AI reply means "rules only", never a failed or unchecked payment.
+- **Inputs are bounded.** Amounts, text lengths and list sizes are validated; request bodies over 8 MB are refused before they are read; screenshots must be real PNG, JPEG or WebP files under 4 MB and are stored under a content fingerprint, so a name can never point outside the upload folder. All SQL uses parameters.
+- **The CSV report is safe to open in a spreadsheet:** cells that start like a formula (a payee named `=HYPERLINK(...)`) are written as text.
+- Dependencies: `npm audit` and `pip-audit` reported no known vulnerabilities on Nov 10, 2026.
+
 ## Honest limits
 
 - All money is PayPal sandbox test money. In the sandbox every payment settles to one sandbox merchant account; the payee name is a label.
 - The risk level is a decision aid, not a validated fraud probability.
-- There is no real login: a toggle switches between the sender and guardian views.
+- There is no real login: a toggle switches between the sender and guardian views, and the API trusts whoever calls it. A real deployment needs sender and guardian accounts, server-side checks that only the linked guardian can approve or decline, and rate limits on the endpoints that call the AI or accept uploads.
 - This is a demo of a protection workflow, not a certified fraud-prevention product.
 
 ## License
