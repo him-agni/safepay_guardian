@@ -1,6 +1,7 @@
 // The only place the frontend talks to the network. Everything goes to our own backend (/api),
 // which is the only thing that talks to PayPal and the AI model.
 
+import type { AskColumn, AskResult } from './guardian/ask'
 import type { Action, Health, Payment, ScreenshotRead, Stats } from './types'
 
 const BASE = '/api'
@@ -102,6 +103,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ image_base64: await readAsDataUrl(file), mime_type: file.type }),
     }),
+  askActivity: (question: string, columns: AskColumn[]) =>
+    request<AskResult>('/activity/ask', { method: 'POST', body: JSON.stringify({ question, columns }) }),
   addMessage: (id: string, from_role: 'sender' | 'guardian', body: string) =>
     request<Payment>(`/payments/${encodeURIComponent(id)}/messages`, {
       method: 'POST',

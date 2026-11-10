@@ -19,6 +19,7 @@ import {
   themeQuartz,
   type CellKeyDownEvent,
   type ColDef,
+  type FilterModel,
   type GridState,
   type ICellRendererParams,
   type IRowNode,
@@ -35,6 +36,13 @@ import { go, usePoll } from '../hooks'
 import { LEVEL_ORDER } from '../levels'
 import type { Level } from '../types'
 import { compareDay, PRESETS, presetTest, toRow, totalRow, type ActivityRow, type PresetId } from './activity'
+import { ASK_COLUMNS, describeFilter, describeSort, toFilterModel, type AskFilter, type AskResult, type AskSort } from './ask'
+
+const ASK_EXAMPLES = [
+  'High-risk payments that I declined',
+  'Payments over $300 still waiting for a decision',
+  'Bank impersonation attempts',
+]
 
 ModuleRegistry.registerModules([
   CellStyleModule,
@@ -251,6 +259,9 @@ export function ActivityPage() {
   const [pinned, setPinned] = useState<ActivityRow[]>([])
   const rows = useMemo(() => (poll.data ?? []).map(toRow), [poll.data])
   const initialState = useMemo(() => load<GridState>(STATE_KEY), [])
+  const [question, setQuestion] = useState('')
+  const [asking, setAsking] = useState(false)
+  const [asked, setAsked] = useState<AskResult | null>(null)
 
   const counts = useMemo(
     () => Object.fromEntries(PRESETS.map((p) => [p.id, rows.filter(p.test).length])) as Record<PresetId, number>,
@@ -302,8 +313,51 @@ export function ActivityPage() {
     })
   }
 
+  /** Apply validated filters to the grid. Only the view changes: nothing about a payment is touched. */
+  const applyAsked = (filters: AskFilter[], sort: AskSort | null) => {
+    const grid = gridRef.current?.api
+    if (!grid) return
+    setPreset('all')
+    setSearch('')
+    grid.setFilterModel(filters.length ? (toFilterModel(filters) as FilterModel) : null)
+    grid.applyColumnState({
+      state: [sort ? { colId: sort.column, sort: sort.direction } : { colId: 'created', sort: 'desc' }],
+      defaultState: { sort: null },
+    })
+  }
+
+  const runAsk = async (q: string) => {
+    if (q.trim().length < 2) return
+    setAsking(true)
+    try {
+      const result = await api.askActivity(q.trim(), ASK_COLUMNS)
+      setAsked(result)
+      if (!result.error) applyAsked(result.filters, result.sort)
+    } catch (err) {
+      setAsked({ understood: false, explanation: '', filters: [], sort: null, ignored: [], model: null, cached: false,
+        latency_ms: null, error: (err as Error).message })
+    } finally {
+      setAsking(false)
+    }
+  }
+
+  const removeChip = (index: number) => {
+    if (!asked) return
+    const filters = asked.filters.filter((_, i) => i !== index)
+    setAsked({ ...asked, filters })
+    applyAsked(filters, asked.sort)
+  }
+
+  const clearAsked = () => {
+    setAsked(null)
+    setQuestion('')
+    applyAsked([], null)
+  }
+
   const resetView = () => {
     const grid = gridRef.current?.api
+    setAsked(null)
+    setQuestion('')
     save(STATE_KEY, undefined)
     setSearch('')
     setPreset('all')
@@ -323,6 +377,78 @@ export function ActivityPage() {
         Every payment, live. Hover a risk or evidence cell to see why it was flagged; press Enter or use Review to open
         it. Decisions are made on the review page, where the full evidence is.
       </p>
+
+      <form
+        className="ask"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void runAsk(question)
+        }}
+      >
+        <label htmlFor="ask-question">Ask about your activity</label>
+        <div className="row">
+          <input
+            id="ask-question"
+            value={question}
+            maxLength={300}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="For example: high-risk payments over $200 that I declined"
+            autoComplete="off"
+          />
+          <button type="submit" className="btn btn-primary" disabled={asking || question.trim().length < 2}>
+            {asking ? 'Thinking…' : 'Ask'}
+          </button>
+        </div>
+        <div className="suggestions" aria-label="Example questions">
+          {ASK_EXAMPLES.map((q) => (
+            <button
+              key={q}
+              type="button"
+              className="suggestion"
+              disabled={asking}
+              onClick={() => {
+                setQuestion(q)
+                void runAsk(q)
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+        <div aria-live="polite">
+          {asked?.error && <p className="ask-error">{asked.error}</p>}
+          {asked && !asked.error && (
+            <div className="ask-result">
+              {asked.explanation && <p>{asked.explanation}</p>}
+              <ul className="ask-chips">
+                {asked.filters.map((f, i) => (
+                  <li key={`${f.column}-${i}`}>
+                    <span>{describeFilter(f)}</span>
+                    <button type="button" aria-label={`Remove: ${describeFilter(f)}`} onClick={() => removeChip(i)}>
+                      ✕
+                    </button>
+                  </li>
+                ))}
+                {asked.sort && (
+                  <li>
+                    <span>{describeSort(asked.sort)}</span>
+                  </li>
+                )}
+              </ul>
+              {asked.ignored.length > 0 && (
+                <p className="muted small">Not used: {asked.ignored.map((i) => i.reason).join('; ')}.</p>
+              )}
+              <p className="muted small">
+                {asked.cached ? 'Stored AI reply' : `Answered by ${asked.model ?? 'the AI'}`}. It only filters this
+                table; nothing about a payment is changed.{' '}
+                <button type="button" className="btn-link" onClick={clearAsked}>
+                  Clear
+                </button>
+              </p>
+            </div>
+          )}
+        </div>
+      </form>
 
       <div className="presets" role="group" aria-label="Preset views">
         {PRESETS.map((p) => (
