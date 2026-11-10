@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1077,
+  "response": "{\n  \"category\": \"utility_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"disconnected in 60 minutes\",\n      \"explanation\": \"The message uses extreme time pressure to force a quick payment.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"Pay immediately to avoid disconnection\",\n      \"explanation\": \"The message threatens a service shut-off to manipulate the sender into paying.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message uses high-pressure tactics typical of utility scams. Please contact your utility company directly using a verified phone number from your official bill before sending any money.\"\n}"
+}

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1172,
+  "response": "{\n  \"category\": \"other\",\n  \"indicators\": [\n    {\n      \"type\": \"other\",\n      \"evidence\": \"can i please get a  <#>  dollar loan\",\n      \"explanation\": \"The message is a request for a loan, which is a common tactic used in social engineering scams.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"medium\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"This payment is for a different amount than requested and involves a loan request, which can be a sign of a scam. Please verify this request directly with the person before sending money.\"\n}"
+}

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 3842,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Hi Mum, I dropped my phone in water\",\n      \"explanation\": \"The sender claims to be a family member using a new number due to a broken phone, which is a common tactic to bypass verification.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"My rent is due today\",\n      \"explanation\": \"The message creates a sense of urgency to pressure the recipient into sending money quickly without thinking.\"\n    },\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"Don't mention it to Dad\",\n      \"explanation\": \"The sender is asking the recipient to keep the transaction secret, which is a major red flag for scams.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message shows classic signs of a scam where someone pretends to be a family member in trouble. Please contact your family member through their known, original phone number before sending any money.\"\n}"
+}

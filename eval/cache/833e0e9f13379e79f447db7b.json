@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1094,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"Please don't tell Mom\",\n      \"explanation\": \"The sender is being asked to keep the payment a secret from other family members, which is a common tactic to prevent verification.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"can you send me $250?\",\n      \"explanation\": \"The request is for a significantly higher amount than the sender's typical payments to this person.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"medium\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"This request asks for secrecy and is for a much larger amount than usual. Please call your nephew directly on a known number to confirm he actually sent this message.\"\n}"
+}

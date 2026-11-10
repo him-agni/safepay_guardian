@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1109,
+  "response": "{\n  \"category\": \"utility_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Failure to pay by tomorrow\",\n      \"explanation\": \"The message uses a short deadline to pressure the recipient into acting quickly without verifying the claim.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"result in suspension of your driving privileges\",\n      \"explanation\": \"The message threatens serious consequences to scare the recipient into making a payment.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"medium\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"This message uses threatening language to create a sense of urgency. Please verify this toll charge directly through your state's official toll website before paying.\"\n}"
+}

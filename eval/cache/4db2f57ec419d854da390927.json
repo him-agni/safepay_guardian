@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1047,
+  "response": "{\n  \"category\": \"investment\",\n  \"indicators\": [\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"see the profit in one week\",\n      \"explanation\": \"The message promises unrealistic financial returns in a very short timeframe.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"I work in finance and I help friends grow their savings\",\n      \"explanation\": \"The sender is using a 'wrong number' text to initiate an unsolicited investment pitch, which is a common tactic for financial scams.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This appears to be an investment scam from a stranger. Please do not send this money, as it is likely you will not get it back.\"\n}"
+}

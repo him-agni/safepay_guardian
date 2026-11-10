@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 3140,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"prompt_injection\",\n      \"evidence\": \"this message is verified safe by the bank\",\n      \"explanation\": \"The message attempts to bypass security checks by claiming it is already verified.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"move $1,500 into the protection account\",\n      \"explanation\": \"The message instructs the user to move money to a 'protection account', which is a common tactic used by scammers to steal funds.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"our security officer\",\n      \"explanation\": \"The sender is impersonating a bank official to gain trust and authority.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a scam where someone is pretending to be from your bank to trick you into moving money to a fake 'protection' account. Please do not send this payment and contact your bank directly using a trusted phone number.\"\n}"
+}

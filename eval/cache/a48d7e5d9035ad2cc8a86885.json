@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 782,
+  "response": "{\n  \"category\": \"none\",\n  \"indicators\": [],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"proceed\",\n  \"summary\": \"This is a standard payment to a trusted utility provider that matches your payment history. The message you received is a general security reminder from your bank and is not related to this transaction.\"\n}"
+}

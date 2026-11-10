@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1233,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"gov.uk account\",\n      \"explanation\": \"The message claims to be from a government entity to create a sense of legitimacy.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"A fine of \u00a335 has been added\",\n      \"explanation\": \"The message uses the threat of a fine to pressure the recipient into making a payment.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message appears to be a scam impersonating a government agency to collect a fake fine. Please do not send this payment.\"\n}"
+}

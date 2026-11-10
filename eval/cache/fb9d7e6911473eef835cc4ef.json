@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 7859,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"payment on your NAB Visa Card is now overdue\",\n      \"explanation\": \"The message uses urgent language about an overdue payment to pressure the recipient into acting quickly.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"NAB Visa Card\",\n      \"explanation\": \"The message claims to be from a bank to create a sense of authority and legitimacy.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message appears to be a fake bank alert designed to trick you into making an unnecessary payment. Please contact your bank directly using a verified phone number from the back of your card before sending any money.\"\n}"
+}

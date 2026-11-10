@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1219,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"pay the one-time $250 processing fee\",\n      \"explanation\": \"The message asks for an upfront fee to receive a grant, which is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"qualify for a $9,000 federal grant\",\n      \"explanation\": \"Promises of large sums of money from the government for no clear reason are typical of fraudulent schemes.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"processing fee today\",\n      \"explanation\": \"The message creates artificial urgency to pressure the sender into paying quickly.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a scam. Government agencies do not ask for processing fees to send you grant money.\"\n}"
+}

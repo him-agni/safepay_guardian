@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1359,
+  "response": "{\n  \"category\": \"tech_support\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Do not shut down your computer\",\n      \"explanation\": \"The message creates a false sense of urgency to prevent the user from thinking clearly or seeking help.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"certified technicians\",\n      \"explanation\": \"The sender is posing as a legitimate technical support service to gain trust and access to funds.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"Your computer has been locked\",\n      \"explanation\": \"The message uses a threat of computer damage to manipulate the user into making an immediate payment.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a common tech support scam designed to scare you into paying for fake services. Please do not send this money and contact a trusted family member or professional for help.\"\n}"
+}

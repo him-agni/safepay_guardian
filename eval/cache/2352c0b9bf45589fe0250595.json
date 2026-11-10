@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1546,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"arr3st warrant will be issued\",\n      \"explanation\": \"The message uses the threat of arrest to pressure the sender into making a payment.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"within 30 m1nutes\",\n      \"explanation\": \"The message creates artificial urgency to force a quick, unthinking decision.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"g1ft c@rds\",\n      \"explanation\": \"Government agencies do not accept payment via gift cards.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common scam where someone pretends to be the IRS to steal money. Please do not send this payment, as government agencies will never demand payment via gift cards or threaten you with arrest.\"\n}"
+}

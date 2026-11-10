@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 5937,
+  "response": "{\n  \"category\": \"prize\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"$299 shipping and handling fee\",\n      \"explanation\": \"The message asks for an upfront payment to receive a prize, which is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"within 48 hours\",\n      \"explanation\": \"The message creates artificial pressure to act quickly to prevent the victim from thinking clearly.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a prize scam. Legitimate contests do not ask winners to pay shipping fees to receive their prize.\"\n}"
+}

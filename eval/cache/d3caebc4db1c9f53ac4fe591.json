@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1093,
+  "response": "{\n  \"category\": \"prize\",\n  \"indicators\": [\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"You have WON a guaranteed \u00a31000 cash\",\n      \"explanation\": \"The message claims the recipient has won a large sum of money, which is a common tactic to lure victims into paying fake fees.\"\n    },\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"To claim yr prize\",\n      \"explanation\": \"Legitimate prizes do not require you to pay a fee to receive them.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a prize scam. Legitimate contests will never ask you to pay money to claim a prize.\"\n}"
+}

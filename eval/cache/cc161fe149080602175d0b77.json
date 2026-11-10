@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1265,
+  "response": "{\n  \"category\": \"romance\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"stuck at customs in Ghana\",\n      \"explanation\": \"The message creates a false sense of urgency regarding a package to pressure you into sending money.\"\n    },\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"want a $1,500 release fee\",\n      \"explanation\": \"Scammers often claim that a fee must be paid to release a package or prize.\"\n    },\n    {\n      \"type\": \"emotional_manipulation\",\n      \"evidence\": \"You are the only person I trust\",\n      \"explanation\": \"This language is designed to make you feel special and obligated to help.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"I will pay you back double\",\n      \"explanation\": \"Promises of large financial returns are a common tactic used to lure victims into sending money.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a romance scam. Please do not send this money, as the story about a package in customs is a common way to trick people into paying fake fees.\"\n}"
+}

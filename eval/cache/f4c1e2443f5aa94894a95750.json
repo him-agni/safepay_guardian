@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1547,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"needs $180 now\",\n      \"explanation\": \"The message creates a sense of immediate pressure to send money for an emergency.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"medium\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"While you have paid this person before, please verify this request by calling your family member directly to ensure they are actually in need of help.\"\n}"
+}

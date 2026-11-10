@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1327,
+  "response": "{\n  \"category\": \"tech_support\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"fix it before your bank account is compromised\",\n      \"explanation\": \"The message uses fear of financial loss to pressure the sender into acting quickly.\"\n    },\n    {\n      \"type\": \"remote_access\",\n      \"evidence\": \"A technician has remote access ready\",\n      \"explanation\": \"Granting remote access to an unknown person is a common tactic used by scammers to steal personal information.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Our network detected your device sending hacking signals\",\n      \"explanation\": \"The message claims to be from a network authority to create a false sense of a security emergency.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a tech support scam. Please do not grant remote access to your computer or send this payment, as it is likely an attempt to steal your money and personal information.\"\n}"
+}

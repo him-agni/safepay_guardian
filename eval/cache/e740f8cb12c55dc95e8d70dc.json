@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1265,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Bank Security: we stopped an unauthorized payment\",\n      \"explanation\": \"The message claims to be from a bank to create fear about an unauthorized transaction.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"send the same amount to yourself\",\n      \"explanation\": \"Scammers often instruct victims to move money to a 'safe' or 'reversal' account, which is actually controlled by the scammer.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Do not hang up\",\n      \"explanation\": \"The message uses high-pressure tactics to prevent the victim from thinking clearly or verifying the claim.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common scam where someone pretends to be your bank to trick you into sending money to a 'safe' account. Please do not send this payment and contact your bank directly using a trusted phone number.\"\n}"
+}

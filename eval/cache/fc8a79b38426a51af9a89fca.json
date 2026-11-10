@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 3750,
+  "response": "{\n  \"category\": \"charity\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Every minute counts\",\n      \"explanation\": \"The message uses high-pressure language to force a quick decision.\"\n    },\n    {\n      \"type\": \"gift_card\",\n      \"evidence\": \"We can only accept gift cards\",\n      \"explanation\": \"Requests for payment via gift cards are a major red flag for scams as they are untraceable.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This request for gift cards is a common scam tactic. Please do not send money to this organization, as legitimate charities do not ask for payment in this way.\"\n}"
+}

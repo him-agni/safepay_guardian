@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 937,
+  "response": "{\n  \"category\": \"delivery\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Unclaimed parcels are destroyed after 3 days\",\n      \"explanation\": \"The message creates artificial pressure by threatening to destroy the parcel if payment is not made quickly.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Customs notice: a parcel addressed to you\",\n      \"explanation\": \"The message impersonates a customs authority to demand an unexpected fee for a package.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a delivery scam. Official customs agencies do not send text messages demanding payment to release packages.\"\n}"
+}

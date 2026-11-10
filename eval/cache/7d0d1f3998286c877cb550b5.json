@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 26641,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Security update from your bank\",\n      \"explanation\": \"The message claims to be from your bank, which is a common tactic used by scammers to gain trust.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"send $3,000 to protect your savings\",\n      \"explanation\": \"Banks will never ask you to move your money to a 'safe' or 'protected' account to secure it.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"so our transfer is not blocked\",\n      \"explanation\": \"The message creates a false sense of urgency to pressure you into acting quickly without thinking.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a scam where someone is pretending to be your bank. Please do not send this money and contact your bank directly using a phone number from the back of your debit card.\"\n}"
+}

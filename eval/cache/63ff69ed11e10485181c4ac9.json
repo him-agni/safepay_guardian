@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 2967,
+  "response": "{\n  \"category\": \"none\",\n  \"indicators\": [],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"proceed\",\n  \"summary\": \"This payment matches the rent amount requested by your landlord. Since you have paid this payee before, this appears to be a standard transaction.\"\n}"
+}

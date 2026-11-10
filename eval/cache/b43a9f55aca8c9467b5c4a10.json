@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1327,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"GOV.UK ALERT CORONAVIRUS\",\n      \"explanation\": \"The message claims to be from a government agency to create fear.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"fine could increase to a maximum of \u00a35000 and/or an arrest\",\n      \"explanation\": \"The message uses threats of arrest and large fines to pressure the recipient into paying.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"issuing you a formal warning and \u00a3250 fine\",\n      \"explanation\": \"The message creates a sense of immediate crisis to force a quick payment.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a scam impersonating a government agency to steal money through threats. Please do not pay this, as government agencies do not demand fines via text messages.\"\n}"
+}

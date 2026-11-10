@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1234,
+  "response": "{\n  \"category\": \"bank_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Fraud alert\",\n      \"explanation\": \"The message mimics a bank fraud alert to create a sense of alarm.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"transfer your balance to the secure holding account\",\n      \"explanation\": \"Scammers often claim they need to move your money to a 'secure' or 'holding' account to protect it, which is a common tactic to steal funds.\"\n    },\n    {\n      \"type\": \"payment_mismatch\",\n      \"evidence\": \"attempt a purchase of $1,249.00\",\n      \"explanation\": \"The payment amount of $1800.00 does not match the $1,249.00 mentioned in the message, and the payee name is suspicious.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a common scam where someone pretends to be your bank to trick you into moving your money. Please do not send this payment and contact your bank directly using a trusted phone number.\"\n}"
+}

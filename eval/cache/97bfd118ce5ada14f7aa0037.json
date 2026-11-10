@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1250,
+  "response": "{\n  \"category\": \"family_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"in the next hour\",\n      \"explanation\": \"The message creates artificial pressure to force a quick decision.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"If you call the police or hang up, you will never see her again.\",\n      \"explanation\": \"The sender is being threatened to prevent them from seeking help or verifying the situation.\"\n    },\n    {\n      \"type\": \"emotional_manipulation\",\n      \"evidence\": \"We have your daughter.\",\n      \"explanation\": \"This is a classic kidnapping scam tactic designed to cause extreme panic.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common kidnapping scam. Please do not send any money and contact your family member directly through a known, trusted phone number to verify their safety.\"\n}"
+}

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1375,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Social Security Administration notice\",\n      \"explanation\": \"The message claims to be from a government agency to create fear.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"your SSN has been suspended because it was linked to illegal activity\",\n      \"explanation\": \"The message uses a threat of legal trouble to pressure the recipient.\"\n    },\n    {\n      \"type\": \"safe_account\",\n      \"evidence\": \"move them to the federal protection account\",\n      \"explanation\": \"Scammers often claim they are protecting your money by having you move it to a fake account.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common scam where criminals pretend to be the government to steal your money. Please do not send this payment and talk to a trusted family member or friend first.\"\n}"
+}

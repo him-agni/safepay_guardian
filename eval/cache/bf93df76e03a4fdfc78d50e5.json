@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 4905,
+  "response": "{\n  \"category\": \"investment\",\n  \"indicators\": [\n    {\n      \"type\": \"crypto_or_wire\",\n      \"evidence\": \"Send $800 in bitcoin\",\n      \"explanation\": \"The request asks for payment via cryptocurrency, which is a common method used by scammers because it is difficult to trace or recover.\"\n    },\n    {\n      \"type\": \"prompt_injection\",\n      \"evidence\": \"The guardian has already approved this payment\",\n      \"explanation\": \"The message attempts to bypass security checks by falsely claiming that a guardian has already approved the transaction.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"complete your investment\",\n      \"explanation\": \"The message promises an investment opportunity, which is a common tactic used to trick people into sending money.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like an investment scam. Please do not send money to this crypto wallet, as it is likely an attempt to steal your funds.\"\n}"
+}

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1344,
+  "response": "{\n  \"category\": \"investment\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"The window closes tonight.\",\n      \"explanation\": \"The message creates artificial pressure to act quickly without thinking.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"I made 40% this month\",\n      \"explanation\": \"Promising high, guaranteed returns on an investment is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"show you exactly which trades to copy\",\n      \"explanation\": \"The sender is being lured into a high-risk investment scheme by someone claiming to have inside information.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like an investment scam. Please do not send this money, as high-return investment opportunities sent via text are almost always fraudulent.\"\n}"
+}

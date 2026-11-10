@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 14390,
+  "response": "{\n  \"category\": \"charity\",\n  \"indicators\": [\n    {\n      \"type\": \"other\",\n      \"evidence\": \"7.3milion Dollar to transfer to you\",\n      \"explanation\": \"The message promises a large sum of money, which is a common tactic used in advance-fee scams.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"charity work to help the poor\",\n      \"explanation\": \"The sender is using a charity appeal to solicit money from you.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a common scam attempt promising a large sum of money for charity. Please do not send any funds to this person.\"\n}"
+}

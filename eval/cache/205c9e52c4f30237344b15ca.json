@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1140,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"this is Medicare benefits services\",\n      \"explanation\": \"The message claims to be from Medicare, which does not charge fees for issuing new cards.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"your old card stops working Friday\",\n      \"explanation\": \"The message creates a false sense of urgency by threatening that your coverage will be interrupted if you do not pay immediately.\"\n    },\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"one-time $95 processing fee\",\n      \"explanation\": \"Medicare does not charge processing fees for issuing new cards.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a scam. Medicare will never call you to demand a fee for a new card or threaten to cancel your coverage.\"\n}"
+}

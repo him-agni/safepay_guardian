@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1108,
+  "response": "{\n  \"category\": \"other\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"It's urgent please\",\n      \"explanation\": \"The message uses urgent language to pressure the recipient into acting quickly.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"UNCLAIMED BEQUEST PAYMENT\",\n      \"explanation\": \"The message claims the recipient is entitled to an unexpected inheritance, which is a common tactic used in advance-fee scams.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This payment appears to be part of an inheritance scam. Please do not send money to strangers promising unclaimed funds.\"\n}"
+}

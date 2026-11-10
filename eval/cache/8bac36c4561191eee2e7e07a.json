@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1187,
+  "response": "{\n  \"category\": \"prize\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"pay the $750 tax and insurance fee\",\n      \"explanation\": \"The message asks for an upfront payment to release a supposed lottery prize, which is a common sign of a scam.\"\n    },\n    {\n      \"type\": \"secrecy\",\n      \"evidence\": \"Do not share this claim number with anyone\",\n      \"explanation\": \"The sender is being instructed to keep the transaction secret, which is a tactic used by scammers to prevent victims from seeking advice.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"won $1,500,000 in the international lottery\",\n      \"explanation\": \"Claims of winning large sums of money from lotteries you did not enter are almost always fraudulent.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a lottery scam. You should never pay a fee to receive a prize, and you should talk to a trusted person before sending this money.\"\n}"
+}

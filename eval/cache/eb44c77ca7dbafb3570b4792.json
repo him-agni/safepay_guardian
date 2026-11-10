@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1327,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"If it is not paid in 2 hours\",\n      \"explanation\": \"The message creates artificial pressure by demanding payment within a very short timeframe.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"deputies will be sent to your address\",\n      \"explanation\": \"The message uses the threat of arrest to intimidate the recipient into paying.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Sheriff's office\",\n      \"explanation\": \"The sender is pretending to be law enforcement to demand money.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This message is a common scam tactic where criminals impersonate law enforcement to threaten you with arrest. Please do not send this payment, as government agencies will not demand fines via text or phone with threats of immediate arrest.\"\n}"
+}

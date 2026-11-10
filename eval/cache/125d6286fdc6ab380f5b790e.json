@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 11203,
+  "response": "{\n  \"category\": \"government_impersonation\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"today or face legal action\",\n      \"explanation\": \"The message uses a threat of legal action to pressure the sender into acting immediately.\"\n    },\n    {\n      \"type\": \"authority_threat\",\n      \"evidence\": \"Court notice: pay your $400 fine\",\n      \"explanation\": \"The message impersonates a court official to demand payment for a fine.\"\n    },\n    {\n      \"type\": \"gift_card\",\n      \"evidence\": \"pay your $400 fine with G I F T   C A R D S\",\n      \"explanation\": \"Demanding payment via gift cards is a major red flag for scams, as these are untraceable.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This appears to be a scam impersonating a court official. Please do not send this money, as government agencies will never demand payment via gift cards.\"\n}"
+}

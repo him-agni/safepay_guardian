@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 5672,
+  "response": "{\n  \"category\": \"contractor\",\n  \"indicators\": [],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"proceed\",\n  \"summary\": \"This appears to be a standard payment for plumbing services you received. The amount matches the invoice provided.\"\n}"
+}

@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1000,
+  "response": "{\n  \"category\": \"employment\",\n  \"indicators\": [\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"must top up your account with $150\",\n      \"explanation\": \"The message asks for an upfront payment to unlock supposed earnings, which is a common sign of a task scam.\"\n    },\n    {\n      \"type\": \"too_good_to_be_true\",\n      \"evidence\": \"unlock your $820 commission\",\n      \"explanation\": \"The promise of a large commission for simple tasks is a typical tactic used to lure victims into sending money.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a task scam where you are asked to pay money to receive a commission. Please do not send this payment as it is likely a fraudulent scheme.\"\n}"
+}

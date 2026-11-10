@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 827,
+  "response": "{\n  \"category\": \"none\",\n  \"indicators\": [],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"proceed\",\n  \"summary\": \"This payment matches the message from your HOA for quarterly dues. It appears to be a standard payment.\"\n}"
+}

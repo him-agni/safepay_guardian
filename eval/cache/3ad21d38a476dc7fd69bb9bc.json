@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 969,
+  "response": "{\n  \"category\": \"other\",\n  \"indicators\": [\n    {\n      \"type\": \"payment_mismatch\",\n      \"evidence\": \"Total amount to be paid is Rs 250/-\",\n      \"explanation\": \"The payment amount of $10.00 USD does not match the amount requested in the message of Rs 250/-.\"\n    }\n  ],\n  \"payment_matches_message\": false,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"warn\",\n  \"summary\": \"The payment amount does not match the request in the message. Please verify the details of this transaction directly with the official service provider before proceeding.\"\n}"
+}

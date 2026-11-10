@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 3717,
+  "response": "{\n  \"category\": \"employment\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"send the remaining $1,850 to our approved equipment vendor today\",\n      \"explanation\": \"The message creates artificial urgency by demanding the payment be sent today.\"\n    },\n    {\n      \"type\": \"other\",\n      \"evidence\": \"mailed you a check for $2,300\",\n      \"explanation\": \"This is a classic overpayment scam where the sender is asked to deposit a fake check and send their own money to a third party.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a common employment scam. Please do not send this money, as the check you received is likely fraudulent and will bounce.\"\n}"
+}

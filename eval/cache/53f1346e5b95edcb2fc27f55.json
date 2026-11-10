@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1109,
+  "response": "{\n  \"category\": \"other\",\n  \"indicators\": [\n    {\n      \"type\": \"other\",\n      \"evidence\": \"sent you a payment of $950 for the $300 dining table by mistake\",\n      \"explanation\": \"This is a common overpayment scam where the sender is asked to refund money that was never actually received or is from a fraudulent source.\"\n    },\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"refund the extra $650 today\",\n      \"explanation\": \"The message creates artificial pressure to act quickly without verifying the original transaction.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a common overpayment scam. Please do not send any money, as the original payment you received may be fraudulent.\"\n}"
+}

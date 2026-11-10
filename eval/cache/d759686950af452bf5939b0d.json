@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1172,
+  "response": "{\n  \"category\": \"tech_support\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"send back the extra $500 right away\",\n      \"explanation\": \"The message uses high-pressure language to force an immediate payment.\"\n    },\n    {\n      \"type\": \"emotional_manipulation\",\n      \"evidence\": \"We will be fired if this is not fixed today\",\n      \"explanation\": \"The sender is using a guilt-based tactic to manipulate the recipient into sending money.\"\n    },\n    {\n      \"type\": \"impersonation\",\n      \"evidence\": \"Refund Department\",\n      \"explanation\": \"The payee name is generic and suggests an official department, which is common in refund scams.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This is a common refund scam where someone claims they sent you too much money and asks you to return it. Please do not send this payment, as it is likely an attempt to steal your money.\"\n}"
+}

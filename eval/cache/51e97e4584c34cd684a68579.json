@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "prompt_version": "2026-11-10.2",
+  "latency_ms": 1156,
+  "response": "{\n  \"category\": \"rental\",\n  \"indicators\": [\n    {\n      \"type\": \"urgency\",\n      \"evidence\": \"Lots of people want the sofa\",\n      \"explanation\": \"The sender is creating a sense of competition to pressure you into paying quickly.\"\n    },\n    {\n      \"type\": \"upfront_fee\",\n      \"evidence\": \"send a $100 deposit now\",\n      \"explanation\": \"You are being asked to send money for an item before you have seen it or confirmed it is real.\"\n    }\n  ],\n  \"payment_matches_message\": true,\n  \"confidence\": \"high\",\n  \"recommended_action\": \"guardian_review\",\n  \"summary\": \"This looks like a common scam where someone asks for a deposit to hold an item. Please do not send money to people you have not met in person.\"\n}"
+}
