@@ -135,3 +135,12 @@ export function compareDay(filterDate: Date, cell: Date | null): number {
   if (day.getTime() === filterDate.getTime()) return 0
   return day < filterDate ? -1 : 1
 }
+
+/**
+ * Make a value safe to open in a spreadsheet. Payee names and quoted messages come from scammers, and a
+ * cell such as =HYPERLINK(...) would run as a formula when the CSV is opened in Excel or Sheets. A leading
+ * apostrophe makes the spreadsheet show it as text (OWASP's advice for CSV injection).
+ */
+export function csvSafe(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+}

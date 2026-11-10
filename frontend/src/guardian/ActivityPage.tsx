@@ -35,7 +35,7 @@ import { duration, money } from '../format'
 import { go, usePoll } from '../hooks'
 import { LEVEL_ORDER } from '../levels'
 import type { Level } from '../types'
-import { compareDay, PRESETS, presetTest, toRow, totalRow, type ActivityRow, type PresetId } from './activity'
+import { compareDay, csvSafe, PRESETS, presetTest, toRow, totalRow, type ActivityRow, type PresetId } from './activity'
 import { ASK_COLUMNS, describeFilter, describeSort, toFilterModel, type AskFilter, type AskResult, type AskSort } from './ask'
 
 const ASK_EXAMPLES = [
@@ -297,6 +297,7 @@ export function ActivityPage() {
       fileName: `safepay-activity-${stamp}.csv`,
       columnKeys: CSV_COLUMNS,
       skipPinnedBottom: true,
+      // Every cell goes through csvSafe: payee names and quotes are attacker-written text.
       processCellCallback: (p) => {
         const r = p.node?.data as ActivityRow | undefined
         switch (p.column.getColId()) {
@@ -305,9 +306,9 @@ export function ActivityPage() {
           case 'amount':
             return r ? (r.amountCents / 100).toFixed(2) : ''
           case 'evidence':
-            return r ? r.evidence.map((q) => `${q.source === 'ai' ? 'AI' : 'Rule'}: "${q.evidence}"`).join('; ') : ''
+            return csvSafe(r ? r.evidence.map((q) => `${q.source === 'ai' ? 'AI' : 'Rule'}: "${q.evidence}"`).join('; ') : '')
           default:
-            return p.value == null ? '' : String(p.value)
+            return csvSafe(p.value == null ? '' : String(p.value))
         }
       },
     })

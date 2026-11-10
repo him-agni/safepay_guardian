@@ -18,9 +18,9 @@ export default defineConfig({
     },
   },
   build: {
-    // AG Grid is ~880 kB minified; it is split into its own chunk and only loaded on the guardian's
-    // Activity tab, so the sender never downloads it.
-    chunkSizeWarningLimit: 1000,
+    // AG Grid (~1 MB) and AG Charts (~1.1 MB) are split into their own chunks and only loaded on the
+    // guardian's Activity and Insights tabs, so the sender never downloads them.
+    chunkSizeWarningLimit: 1200,
   },
   test: {
     environment: 'node',

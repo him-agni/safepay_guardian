@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Payment } from '../types'
-import { compareDay, presetTest, toRow, totalRow, totals } from './activity'
+import { compareDay, csvSafe, presetTest, toRow, totalRow, totals } from './activity'
 
 const pay = (over: Partial<Payment>): Payment =>
   ({
@@ -106,5 +106,15 @@ describe('date filter', () => {
     expect(compareDay(day, new Date(2026, 10, 9, 15, 30))).toBe(0)
     expect(compareDay(day, new Date(2026, 10, 8, 23, 59))).toBe(-1)
     expect(compareDay(day, new Date(2026, 10, 10, 0, 1))).toBe(1)
+  })
+})
+
+describe('CSV export', () => {
+  it('stops spreadsheet formulas in scam text from running', () => {
+    expect(csvSafe('=HYPERLINK("http://evil.example","Click")')).toBe('\'=HYPERLINK("http://evil.example","Click")')
+    for (const bad of ['+1+1', '-2+3', '@SUM(A1)', '\t=1', '\r=1']) expect(csvSafe(bad)).toBe(`'${bad}`)
+    expect(csvSafe('Officer Collins')).toBe('Officer Collins')
+    expect(csvSafe('500.00')).toBe('500.00')
+    expect(csvSafe('')).toBe('')
   })
 })
