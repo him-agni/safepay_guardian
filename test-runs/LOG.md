@@ -4,6 +4,16 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Manual · Sender: scenario 3 from a screenshot (demo mode)
+
+- **Run by:** Himani, in her browser.
+- **Mode:** demo (real PayPal sandbox, stored AI replies, 2-minute hold), database `data/demo.db`.
+- **Steps:** Sender, Secure Holdings LLC, $300, "Add a screenshot instead" with `demo/screenshots/bank-fraud-team-text.png`, checked the text, sent.
+- **Expected:** the screenshot is read (3 received messages, own reply left out), the payment is held as High, the AI's evidence is highlighted, the screenshot is shown.
+- **Actual:** screenshot read from the stored reply (3 messages, 1 own reply skipped). **High risk, on hold.** Summary: "This looks like a scam. Banks will never call you and ask you to move your money to a different account for protection." Reasons: protected/safe account, bank fraud-department impersonation, artificial urgency, $300 much larger than the usual $50, new payee. Highlighted: "this is Daniel from the Fraud Prevention Team at your bank", "move $300 to the protected account", "Please do it today so your savings stay safe". "Your screenshot" shown under the message.
+- **Verdict:** Pass.
+- **Screenshots:** [held, with reasons](screenshots/2026-11-10-sender-screenshot-scenario-held-reasons.png) · [highlights and screenshot](screenshots/2026-11-10-sender-screenshot-scenario-highlights.png)
+
 ## 2026-11-10 · Live · Screenshot reading and demo rehearsal (sandbox + Gemini)
 
 - **Run by:** Claude, on separate ports and a separate database (Himani's own app untouched).
