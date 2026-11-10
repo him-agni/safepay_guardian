@@ -9,17 +9,20 @@ Nothing here can read payment details beyond what the grid already shows, or cha
 from __future__ import annotations
 
 import json
+import logging
+import math
 import re
 import time
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
 from .risk.ai import AIError, AIProvider
 
 ASK_PROMPT_VERSION = "2026-11-10.1"
+log = logging.getLogger("safepay.ask")
 OPERATORS = ("contains", "equals", "greater_than", "less_than", "between", "on", "after", "before")
 VALID_OPS = {
     "text": {"contains", "equals"},
@@ -48,7 +51,7 @@ class ColumnSpec(BaseModel):
     id: str = Field(max_length=40, pattern=r"^[A-Za-z][A-Za-z0-9_]*$")
     label: str = Field(max_length=60)
     type: Literal["text", "enum", "number", "date"]
-    values: list[str] = Field(default_factory=list, max_length=40)
+    values: list[Annotated[str, Field(max_length=60)]] = Field(default_factory=list, max_length=40)
 
 
 class AskRequest(BaseModel):
@@ -148,7 +151,8 @@ def _number(text: str) -> Optional[float]:
         value = float(cleaned)
     except ValueError:
         return None
-    return value if value >= 0 else None
+    # "inf" and "nan" parse as floats but are not amounts (and cannot be sent back as JSON).
+    return value if math.isfinite(value) and value >= 0 else None
 
 
 def _date(text: str) -> Optional[str]:
@@ -223,7 +227,9 @@ def ask(provider: Optional[AIProvider], request: AskRequest, today: date) -> Ask
     try:
         raw = provider.generate(ASK_SYSTEM, user_prompt(request.question, request.columns, today),
                                 response_schema(request.columns))
-    except AIError:
+    except Exception as exc:  # AIError, or anything unexpected: the guardian falls back to the presets
+        if not isinstance(exc, AIError):
+            log.exception("unexpected AI failure in ask")
         out.error = "I could not answer that just now. Please try again, or use the filters or preset views."
         return out
     finally:
