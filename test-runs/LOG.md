@@ -4,6 +4,18 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-11 · Sandbox + demo · After the second-review fixes
+
+- **Run by:** Claude, on spare ports (8004, 8005) with their own databases, real PayPal sandbox and live Gemini for the smoke test, stored AI replies for the rehearsal.
+- **What changed first:** settled-capture handling (new CAPTURE_PENDING), hold deadline inside the decision, unanswered authorizations retried, idempotent payment creation, a double-check when the AI did not run, a checked sandbox address, settings ranges, a 413 for streamed bodies, a safe demo reset. 199 backend and 63 frontend tests, build and lint clean; every new fix has tests that fail with the fix switched off.
+- **`scripts/api_smoke.py` (sandbox + Gemini):** all lanes passed (auto-capture, warn then confirm, hold then approve, repeated approve returns the same capture, hold then decline, late approve gets a 409, sender cancel, hold timeout) and all 6 authorizations matched PayPal (3 CAPTURED, 3 VOIDED). PayPal's capture status for a real card capture was `COMPLETED`, which the new code accepts as settled.
+- **Idempotency key, live:** the same key sent twice returned the first payment (`200`, `Idempotent-Replayed: true`) and only one payment existed.
+- **`scripts/demo_rehearsal.py --runs 3 --standalone 3` (demo mode):** all checks passed; every stored AI reply still matched (so the prompt and engine are unchanged) and all 10 authorizations matched PayPal.
+- **Cached evaluation:** same scores as the published run (16-case set: rules 5/9, AI 9/9, hybrid 9/9 scams held). Published result files were left as committed.
+- **Found during the run, not a bug:** the first smoke run failed one check ("medium risk warned") because the smoke database still held a previous run, so the payee was no longer new and the payment correctly scored Low. `DATABASE_PATH` is resolved from the repo root, not from `backend/`, which is why deleting `backend/data/smoke.db` did nothing; the check passed on a fresh `data/smoke.db`.
+- **Screenshot:** [AI outage double-check](screenshots/2026-11-10-ai-outage-double-check.png) (fake PayPal, no AI, new payee).
+- **Verdict:** Pass.
+
 ## 2026-11-10 · Browser · Animated Home page
 
 - **Run by:** Claude, headless Edge driven over the DevTools protocol, dev server on port 5174 (the Home page needs no backend).
