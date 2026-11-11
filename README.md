@@ -1,208 +1,447 @@
 # SafePay Guardian
 
-> **Sandbox only: all money is PayPal sandbox test money.**
+**A second look before money leaves.** SafePay Guardian checks a payment and the message that asked for it. If it looks like a scam, the payment waits on hold until someone you trust has looked. No money moves until a person decides.
 
-SafePay Guardian holds a risky payment before it is captured, shows the sender and a trusted guardian exactly why it looks risky, and lets the guardian approve it or void it. It runs on PayPal's authorize, capture and void flow, with a hybrid risk engine (rules plus AI reading the message) deciding what needs a human.
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![PayPal sandbox only](https://img.shields.io/badge/PayPal-sandbox%20only-orange)
+![Backend tests](https://img.shields.io/badge/backend%20tests-199%20passing-brightgreen)
+![Frontend tests](https://img.shields.io/badge/frontend%20tests-63%20passing-brightgreen)
 
-Status: work in progress for the PayPal hackathon (deadline Nov 12, 2026).
+> **Sandbox only: all money is PayPal sandbox test money.** Built for the PayPal AI Hackathon.
 
-## Try it without any keys
+![SafePay Guardian home page: a shield that follows the cursor and a looping story of a scam payment going on hold](docs/images/hero.png)
 
-The fake PayPal and the stored AI replies for the three demo messages need no credentials:
+**Jump to:** [The problem](#the-problem) · [What it does](#what-it-does) · [Screenshots](#screenshots) · [Try it in two minutes](#try-it-in-two-minutes-no-keys-needed) · [How it works](#how-it-works) · [PayPal integration](#paypal-integration) · [AI: tools and how they are used](#ai-tools-and-how-they-are-used) · [Evaluation](#evaluation) · [Tests](#tests-and-verification) · [Honest limits](#honest-limits)
 
-```bash
+---
+
+## The problem
+
+Scammers pretend to be a bank, the government, a grandchild or a friend, and they push people to pay *fast*: gift cards, a "safe account", a wire. Banks and payment apps usually look only at the transaction. By then the person has already been talked into it, and the message that did the talking is nowhere in the picture.
+
+## What it does
+
+SafePay Guardian puts a calm pause and a trusted second opinion between the sender and the money, using PayPal's **authorize, then capture or void** flow. Every payment is *reserved* first and only *taken* once it is cleared.
+
+| Risk | What happens | Who decides |
+|---|---|---|
+| **Low** | Sent right away. Nothing changes for everyday payments. | Nobody. Rules and AI agree it is normal. |
+| **Medium** | The sender sees the reasons and the exact words that worried us, then confirms or cancels. | The sender |
+| **High** | **On hold.** The authorization stays open, the guardian is asked, and they chat with the sender in the app. | The guardian: approve (capture) or decline (void) |
+
+If nobody answers before the hold runs out, the payment is **cancelled, never sent**.
+
+It is built for two people:
+
+- **The sender** (large text, plain words): often an older adult. Pays as usual, sees *why* something looks risky, never has to argue with a scammer.
+- **The guardian** (a son, daughter, friend or carer): hears only about the payments that matter, sees the evidence, asks a question, and decides.
+
+### Three layers of protection
+
+| Layer | What we look at |
+|---|---|
+| **Communication** | The pasted message or a screenshot of the conversation, read by safety rules and by Gemini. Every reason must quote the message word for word. |
+| **Transaction** | A new payee, an amount far above the sender's usual, a payee with no explanation. |
+| **Payment** | PayPal authorization first. Capture only after a human or a Low result. Void on decline, cancel or silence. |
+
+---
+
+## Screenshots
+
+All captured from the running app in demo mode (made-up people and made-up scam texts).
+
+### The sender
+
+<table>
+<tr>
+<td width="50%"><b>On hold: the reasons, in plain words, with the suspicious words highlighted.</b> The screenshot the sender uploaded is kept next to the text the AI read from it.<br><br><img src="docs/images/sender-hold.png" alt="Sender screen: this payment is on hold, with reasons and the highlighted message"></td>
+<td width="50%"><b>Medium risk: a warning to confirm or cancel.</b> A legitimate but unusual payment (a $350 deposit to a new contractor) is not blocked, only double-checked.<br><br><img src="docs/images/sender-warning.png" alt="Sender screen: please check this payment before it is sent"></td>
+</tr>
+</table>
+
+### The guardian
+
+<table>
+<tr>
+<td width="50%"><b>Review:</b> risk level, the evidence labelled <i>Rule</i> or <i>AI</i> with the quoted words, the matched scam pattern, the payee's history, a hold timer, and Approve or Decline with a note to the sender.<br><br><img src="docs/images/guardian-review.png" alt="Guardian review screen with evidence, decision box and hold timer"></td>
+<td width="50%"><b>Queue:</b> pending payments, newest first, with the risk level, payee, amount and how long is left.<br><br><img src="docs/images/guardian-queue.png" alt="Guardian queue showing two payments waiting"><br><br><b>Phone width:</b> every screen works at 400 px.<br><br><img src="docs/images/phone-hold.png" width="220" alt="The hold screen on a phone"></td>
+</tr>
+</table>
+
+### Activity and Insights (AG Grid and AG Charts, Community editions)
+
+![Activity case log built with AG Grid: a plain-English question became two filter chips](docs/images/guardian-activity.png)
+
+*"Ask about your activity": a plain-English question becomes filter chips that are validated against known columns before they touch the grid. It only filters the view and can never approve or decline anything.*
+
+![Insights: stat tiles and charts of payments over time, top scam categories and flagged recipients](docs/images/guardian-insights.png)
+
+### Home page and themes
+
+Light and dark mode on every screen (it follows the device, with a toggle). The hero is animated: the shield follows the cursor and a looping story shows a scam payment going on hold. "Reduce motion" in the device settings turns all movement off, and touch screens skip the cursor effects.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/hero-dark.png" alt="Home page in dark mode"></td>
+<td width="50%"><img src="docs/images/how-it-works.png" alt="How it works: the path of a payment"></td>
+</tr>
+</table>
+
+---
+
+## Try it in two minutes (no keys needed)
+
+Judge mode uses a **fake PayPal** and **stored AI replies** for the three demo messages, so it needs no credentials and no internet. You need Python 3.10+ and Node 20+.
+
+**Windows (PowerShell)**
+
+```powershell
 python -m venv .venv
-.venv/Scripts/python -m pip install -r backend/requirements.txt     # .venv/bin/python on macOS/Linux
+.\.venv\Scripts\python -m pip install -r backend\requirements.txt
+
+# Terminal 1: the backend
 cd backend
-PAYPAL_MODE=fake AI_PROVIDER=replay AI_CACHE_DIR=demo/ai-cache DATABASE_PATH=data/judge.db   ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
-# second terminal, repo root: seed the demo history, then start the web app
-PAYPAL_MODE=fake DATABASE_PATH=data/judge.db .venv/Scripts/python scripts/reset_demo.py
-cd frontend && npm install && npm run dev                            # http://localhost:5173
+$env:PAYPAL_MODE="fake"; $env:AI_PROVIDER="replay"; $env:AI_CACHE_DIR="demo/ai-cache"; $env:DATABASE_PATH="data/judge.db"
+..\.venv\Scripts\python -m uvicorn app.main:create_app --factory --port 8000
+
+# Terminal 2, from the repo root: seed the demo history, then start the web app
+$env:PAYPAL_MODE="fake"; $env:DATABASE_PATH="data/judge.db"
+.\.venv\Scripts\python scripts\reset_demo.py
+cd frontend; npm install; npm run dev
 ```
 
-Then follow the three scenarios in [demo/README.md](demo/README.md). Messages other than the demo ones are checked by the rules alone, and the screen says so.
-
-## Run the backend
-
-Requires Python 3.10 or newer.
-
-Windows (Git Bash):
+**macOS / Linux, or Git Bash on Windows**
 
 ```bash
-python -m venv .venv
-.venv/Scripts/python -m pip install -r backend/requirements.txt
-cp .env.example .env          # optional: works with no values set
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.txt     # .venv/Scripts/python on Git Bash
+
+# Terminal 1: the backend
+cd backend
+PAYPAL_MODE=fake AI_PROVIDER=replay AI_CACHE_DIR=demo/ai-cache DATABASE_PATH=data/judge.db \
+  ../.venv/bin/python -m uvicorn app.main:create_app --factory --port 8000
+
+# Terminal 2, from the repo root
+PAYPAL_MODE=fake DATABASE_PATH=data/judge.db .venv/bin/python scripts/reset_demo.py
+cd frontend && npm install && npm run dev
+```
+
+Open **http://localhost:5173**, then follow the three scenarios in [demo/README.md](demo/README.md) (an obvious scam, a legitimate but unusual payment, and a polite "bank" text that only the AI catches). Use *I am the sender* and *I am the guardian* in the header to change sides.
+
+> Messages other than the three demo ones are checked by the **rules alone**, and the screen says so ("AI check unavailable, rules only"). In that state a payment to a *new* payee, or for a much larger amount than usual, still asks the sender to confirm, even if the rules call it Low.
+
+<details>
+<summary><b>Run it on the real PayPal sandbox and Gemini</b></summary>
+
+Copy `.env.example` to `.env` and fill in a PayPal **sandbox** app's client id and secret, a sandbox test card, and a Gemini API key. Then start the backend with no overrides:
+
+```bash
 cd backend
 ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
 ```
 
-macOS / Linux:
+Check the connection and the whole flow:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements.txt
-cp .env.example .env
-cd backend
-../.venv/bin/python -m uvicorn app.main:create_app --factory --port 8000
-```
-
-Then open http://localhost:8000/health.
-
-With no `.env` values the app uses a fake in-process PayPal and the rules-only risk engine, so it runs without any credentials.
-
-Run the tests:
-
-```bash
-cd backend
-../.venv/Scripts/python -m pytest -q     # or ../.venv/bin/python on macOS/Linux
-```
-
-## Run the web app
-
-Requires Node 20 or newer. Start the backend first (above), then in a second terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev          # http://localhost:5173
-```
-
-Two sides, one app, in light and dark mode (it follows the device setting; the moon/sun button in the header switches and remembers it):
-
-- **Home** (`#/`): who it is for, how to use it from the sender's and the guardian's side, how it works (PayPal authorization, rules and AI, one risk level, a person decides), why to trust it (fail-safe design and the held-out test results) and common questions.
-- **Sender** (large text, plain words): send money with an optional pasted message or a **screenshot of the conversation** (the AI copies the received messages word for word, leaves out the sender's own replies, and the sender checks the text before sending); see "Payment completed", a warning to confirm or cancel, or "This payment is on hold" with the reasons, the suspicious words highlighted and a **"While you wait: staying safe"** box (one tip for the kind of scam detected, then general advice such as "nobody real asks for gift cards, crypto or a wire transfer"); reply to the guardian.
-- **Guardian**: a queue of held payments; a review screen with the risk level, quoted evidence (rule or AI), the matched scam pattern, payee history, the hold timer, Approve / Decline with a note, Retry after a PayPal failure, "Ask the payer", and the full audit log of the main PayPal steps; an **Activity** case log built with AG Grid (**"Ask about your activity"**: a plain-English question such as "high-risk payments that I declined" becomes validated grid filters shown as removable chips, read-only; live rows whose status cells flash when a decision lands, preset views such as "Needs a decision" and "Flagged by AI", evidence tooltips, top quoted evidence, who checked it, a void countdown, column and date filters, a pinned totals row for the current view, a CSV report for a bank or police report, and a remembered layout; decisions stay on the review page); and **Insights** with stat tiles and three AG Charts Community charts (payments over time by outcome, top scam categories, recipients flagged most often), each with a "Show as a table" view.
-
-The Vite dev server forwards `/api` to the backend on port 8000, so the browser only ever talks to our backend, and the backend is the only thing that talks to PayPal and the AI. Use the "I am the sender / I am the guardian" switch in the header to change sides (there is no real login). Both screens refresh every 3 seconds.
-
-Frontend checks: `npm test` (unit tests), `npm run build` (type-check and production build), `npx oxlint src` (lint).
-
-### Sandbox checks
-
-With PayPal sandbox values in `.env` (`PAYPAL_MODE=sandbox`):
-
-```bash
-.venv/Scripts/python scripts/sandbox_gate.py   # raw PayPal calls: create, authorize, capture, void
-```
-
-End-to-end through the API (start the backend with a short hold so the timeout path runs too):
-
-```bash
-cd backend
+.venv/Scripts/python scripts/sandbox_gate.py     # raw PayPal calls: create, authorize, capture, void
+# start the backend with a short hold first, then:
 HOLD_TIMEOUT_SECONDS=20 SWEEPER_INTERVAL_SECONDS=2 DATABASE_PATH=data/smoke.db \
-  ../.venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000
-# in a second terminal, from the repo root:
-.venv/Scripts/python scripts/api_smoke.py
+  .venv/Scripts/python -m uvicorn app.main:create_app --factory --port 8000   # from backend/
+.venv/Scripts/python scripts/api_smoke.py        # every lane, then reads each authorization back from PayPal
 ```
 
-The smoke script runs every lane (auto-capture, warn then confirm, hold then approve, hold then decline, sender cancel, hold timeout) and then reads each authorization back from PayPal to confirm it really is captured or voided.
+The app refuses to start in sandbox mode unless the PayPal address is a PayPal sandbox host. `.env` is git-ignored and is never read by the tests.
+</details>
 
-## API
+---
+
+## How it works
+
+### Architecture
+
+The browser only ever talks to our backend. The backend is the only thing that talks to PayPal and to the AI.
+
+```mermaid
+flowchart LR
+    subgraph Browser["Browser"]
+        S["Sender screens<br/>large text, plain words"]
+        G["Guardian screens<br/>queue · review · AG Grid · AG Charts"]
+    end
+    subgraph Backend["Backend (FastAPI)"]
+        API["REST API<br/>rate limits · size limits"]
+        SM["Payment state machine<br/>claims · deadline · idempotency"]
+        RE["Risk engine<br/>rules + AI + grounding"]
+        SW["Sweeper every 5 s<br/>expired holds · voids · pending captures"]
+        DB[("SQLite<br/>payments · audit log · messages")]
+    end
+    PP[("PayPal sandbox<br/>Orders + Payments v2")]
+    GM[("Google Gemini<br/>structured JSON")]
+    S -->|"poll every 3 s"| API
+    G -->|"poll every 3 s"| API
+    API --> SM
+    API --> RE
+    SM --> DB
+    SM -->|"authorize · capture · void"| PP
+    RE -->|"read the message"| GM
+    SW --> SM
+```
+
+### A scam payment, end to end
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Sender (Margaret)
+    participant B as SafePay backend
+    participant AI as Gemini
+    participant PP as PayPal sandbox
+    actor D as Guardian (Daniel)
+    M->>B: Send $300, with a screenshot of the text she got
+    B->>AI: Read the conversation (untrusted text, strict JSON)
+    AI-->>B: Indicators, each with a quote from the message
+    B->>B: Rules and grounded AI quotes give risk level HIGH
+    B->>PP: Create order, AUTHORIZE (money reserved, not taken)
+    PP-->>B: authorization id
+    B-->>M: "On hold. No money has been sent." and the reasons
+    D->>B: Opens the queue (polls every 3 s)
+    B-->>D: Evidence, highlighted message, screenshot
+    D->>M: "Did you speak to this person?" (in-app chat)
+    alt Guardian declines, or nobody answers before the deadline
+        D->>B: Decline
+        B->>PP: Void the authorization
+        PP-->>B: VOIDED
+        B-->>M: "Declined. No payment was taken."
+    else Guardian approves
+        D->>B: Approve
+        B->>PP: Capture
+        PP-->>B: COMPLETED
+        B-->>M: "Payment completed."
+    end
+```
+
+### The payment state machine
+
+Every transition happens inside one SQLite write transaction that *claims* the payment before PayPal is called, so two decisions can never both act.
+
+```mermaid
+stateDiagram-v2
+    [*] --> CREATED
+    CREATED --> AUTHORIZED: PayPal authorizes
+    CREATED --> AUTH_FAILED: refused, or no answer for 5 min
+    AUTHORIZED --> CAPTURING: Low risk
+    AUTHORIZED --> WARNED: Medium risk
+    AUTHORIZED --> HELD: High risk
+    WARNED --> CAPTURING: sender confirms
+    WARNED --> VOIDING: cancel or timeout
+    HELD --> CAPTURING: guardian approves
+    HELD --> VOIDING: decline, cancel or timeout
+    CAPTURING --> CAPTURED: capture settled
+    CAPTURING --> CAPTURE_PENDING: PayPal says pending
+    CAPTURING --> CAPTURE_FAILED: declined or error
+    CAPTURE_PENDING --> CAPTURED: settles
+    CAPTURE_PENDING --> CAPTURE_FAILED: fails
+    CAPTURE_FAILED --> CAPTURING: retry
+    CAPTURE_FAILED --> VOIDING: decline or timeout
+    VOIDING --> VOIDED
+    VOIDING --> EXPIRED: timeout
+    VOIDING --> VOID_FAILED
+    VOID_FAILED --> VOIDING: automatic retry
+    CAPTURED --> [*]
+    VOIDED --> [*]
+    EXPIRED --> [*]
+    AUTH_FAILED --> [*]
+```
+
+### The risk engine
+
+The AI is never the sole decision-maker. Rules set a floor, the AI adds context, and a person decides what is held.
+
+```mermaid
+flowchart TD
+    IN["Payment details and the pasted message"] --> R["Safety rules<br/>gift cards · crypto · wire · urgency · secrecy<br/>new payee · unusual amount"]
+    IN --> A["Gemini analysis<br/>strict JSON schema"]
+    SS["Screenshot of the conversation"] -->|"read by Gemini, then the sender confirms the text"| IN
+    PAT["25 known scam scripts<br/>BM25 retrieval"] -.->|"context for the AI, no weight"| A
+    A --> GR["Evidence grounding<br/>a quote must appear word for word, or it is dropped"]
+    R --> AG["Aggregation<br/>highest of: hard rule · score level · AI floor<br/>the AI can raise a level, never lower it"]
+    GR --> AG
+    AG --> L{"Risk level"}
+    L -->|Low| C["Sent right away"]
+    L -->|Medium| W["Sender double-checks"]
+    L -->|High| H["Held for the guardian"]
+```
+
+- **Rules** (`backend/app/risk/rules.py`): gift or prepaid cards, crypto, wire or "safe account" requests are hard rules (High on their own). Urgency, secrecy, authority threats, a new payee, an unusual amount and a "new phone number" story add weights.
+- **AI** (`backend/app/risk/ai.py`): one call with a strict JSON schema returns a category, indicators with quoted evidence and a recommended action. The message sits inside a delimiter derived from its own hash, so it cannot close it, and instructions inside it are reported as manipulation.
+- **Grounding:** every quote the AI returns must literally appear in the message, note, payee or amount. Anything else is dropped and logged, never shown.
+- **Degraded mode:** if the AI is unavailable, times out (12 s) or returns bad JSON, the engine runs on rules alone and says so. Hard rules still hold dangerous payments.
+- The risk level is a **heuristic decision aid, not a fraud probability**. Every number lives in `backend/app/risk/config.py`.
+
+---
+
+## PayPal integration
+
+PayPal is central, not decoration: the whole product *is* the authorize, capture and void flow.
+
+| Step | PayPal call | Why |
+|---|---|---|
+| Reserve | Orders v2 `POST /v2/checkout/orders` with `intent: AUTHORIZE` and the sandbox test card | Reserves the amount without taking it. This is the hold. |
+| Check | `GET /v2/payments/authorizations/{id}` before every capture and void | If PayPal already shows it captured, voided or expired, we record that instead of calling again. |
+| Approve | `POST .../authorizations/{id}/capture` | Takes the money, only after a Low result or a human decision. |
+| Decline, cancel, silence | `POST .../authorizations/{id}/void` | Releases the reservation. Nothing is taken. |
+| Settle | `GET /v2/payments/captures/{id}` | A capture PayPal calls pending is re-checked until it settles. |
+
+Every call carries a deterministic `PayPal-Request-Id` (`{payment_id}-{action}-{attempt}`): network retries reuse it, so a lost response can never cause a second capture, and only a definite refusal moves to the next attempt number.
+
+### Safety guarantees (each one has tests)
+
+- **Nothing is captured until a decision.** A claim moves the payment to `CAPTURING` or `VOIDING` before any PayPal call; a repeat in the same direction returns the first result and the opposite direction gets a plain 409.
+- **A payment is "completed" only when PayPal reports the capture as settled.** Pending is shown as "PayPal is still confirming it".
+- **The hold deadline is checked inside the decision itself**, not only by the background sweeper: an approval that arrives after it cannot capture.
+- **An authorization PayPal never answered is not treated as failed.** It may have gone through, so it is retried with the same request id.
+- **Pressing Send twice cannot make two payments.** The form sends a submission key and the server returns the first payment for it.
+- **Silence fails safe.** Warned and held payments are voided when the hold times out (24 hours; 2 minutes in the demo).
+- **The audit log** records every state change and the main PayPal steps, with PayPal's debug ids, and never a card number or token.
+- **Sandbox only, checked.** In sandbox mode the app refuses to start unless the PayPal address is a PayPal sandbox host.
+
+*In production this would use PayPal Checkout with payer approval and webhooks (with signature verification) instead of polling our own backend.*
+
+---
+
+## AI: tools and how they are used
+
+All AI is **Google Gemini 3.1 Flash-Lite**, called from the backend over its REST API with a structured-JSON schema, at temperature 0, behind a small provider interface (so the model can be swapped). The key never leaves the server.
+
+| Use | What the AI does | What it can never do |
+|---|---|---|
+| **Risk check** | Reads the message and returns a category and indicators with quoted evidence. | Approve, decline or move money, or lower a risk level. |
+| **Screenshot reading** | Copies each received message word for word, skips the sender's own replies. The sender confirms the text before anything is checked. | Follow instructions written inside the image. |
+| **Ask about your activity** | Turns a plain-English question into filter chips. A validator keeps only known columns, operators and values. | Change a payment. It is read-only. |
+
+Stored replies (`demo/ai-cache/`) let judges run the demo with no key and let the video avoid free-tier limits. Anything not stored falls back to rules only, visibly.
+
+---
+
+## Evaluation
+
+Two sets, reported separately and honestly. The engine was **tuned once on the 16-case development set and then frozen**; the held-out set was written afterwards and never used for tuning, even where the numbers dropped.
+
+| Held-out set: 69 cases | Rules only | AI only | **Hybrid** |
+|---|---|---|---|
+| Scams held for the guardian (High) | 22/46 (48%) | 44/46 (96%) | **44/46 (96%)** |
+| Scams at least warned (Medium or High) | 36/46 (78%) | 46/46 (100%) | **46/46 (100%)** |
+| Everyday payments wrongly held | 0 of 17 | 0 of 17 | **0 of 17** |
+| Level accuracy | 47/69 (68%) | 67/69 (97%) | **68/69 (99%)** |
+
+The 16-case development set: hybrid 16/16, rules only 12/16, AI only 15/16, identical across 3 runs.
+
+The held-out set has 30 scams written from patterns published by the FTC and the FBI (each case cites its source page), 14 everyday payments, 6 ambiguous cases, 8 adversarial cases (disguised words, Spanish, lookalike letters, attempts to instruct the AI) and **11 real text messages** from a public research dataset.
+
+> **Read these numbers carefully.** They were measured with a 30-second AI timeout and generous retries. The app waits 12 seconds and then falls back to rules only: in this run 6 of 69 replies were slower than that. It is a small, mostly self-written set, **not a measured real-world fraud rate**. That gap is exactly why a payment the rules call Low still needs the sender's OK when the AI did not run and the payee is new or the amount is unusual.
+
+Full tables and every case: [eval/results.md](eval/results.md) and [eval/results_heldout.md](eval/results_heldout.md).
+
+```bash
+.venv/Scripts/python eval/run_eval.py --cached                  # offline, from the committed AI replies
+.venv/Scripts/python eval/run_eval.py --cases eval/heldout_cases.json --out results_heldout --cached
+```
+
+---
+
+## Tests and verification
+
+| What | Command | Result |
+|---|---|---|
+| Backend: state machine, PayPal client, risk engine, hardening | `cd backend && ../.venv/Scripts/python -m pytest -q` | **199 passing**, offline |
+| Frontend: unit tests | `cd frontend && npm test` | **63 passing** |
+| Frontend: type-check and production build | `npm run build` | clean |
+| Frontend: lint | `npx oxlint src` | clean |
+| Real PayPal sandbox, every lane | `scripts/api_smoke.py` | every lane passed; each authorization read back from PayPal (CAPTURED or VOIDED as expected) |
+| Three demo scenarios, three runs plus one standalone | `scripts/demo_rehearsal.py --runs 3 --standalone 3` | all passed; every authorization matched PayPal |
+
+The safety tests run against an in-process fake PayPal with fault injection (lost responses, timeouts, pending captures, an authorization voided behind our back, concurrent approve and cancel). Each fix has a test that **fails when the fix is switched off**. Dated results, screenshots and what each run found: [test-runs/LOG.md](test-runs/LOG.md).
+
+---
+
+## Built with
+
+| | |
+|---|---|
+| **Backend** | Python 3.10+, FastAPI, SQLite (parameterised SQL only), httpx |
+| **Frontend** | React, TypeScript, Vite, Inter font bundled for offline use |
+| **Guardian tools** | [AG Grid Community](https://www.ag-grid.com/) (Activity case log, status flashes, preset views, totals row, CSV export) and AG Charts Community (Insights) |
+| **AI** | Google Gemini 3.1 Flash-Lite, structured JSON |
+| **Payments** | PayPal Orders v2 and Payments v2, sandbox |
+
+### Project layout
+
+```text
+backend/app/   state.py (state machine)  paypal.py (real + fake PayPal)  risk/ (rules, AI, grounding, patterns)
+               main.py (API)  db.py  ratelimit.py  activity_query.py  demo.py
+backend/tests/ 199 tests          frontend/src/  sender/  guardian/  home/  (React screens)
+eval/          cases, held-out cases, runner, results, stored AI replies
+demo/          scenarios.json, runbook, stored AI replies, the made-up screenshot
+scripts/       sandbox_gate  api_smoke  demo_rehearsal  reset_demo
+docs/          BUILD_PLAN.md  HANDOFF.md  images/       test-runs/   dated test log and screenshots
+```
+
+<details>
+<summary><b>API reference</b></summary>
 
 | Method and path | What it does |
 |---|---|
-| `POST /payments` | Create a payment, run the risk engine, authorize on PayPal, then capture, warn or hold |
+| `POST /payments` | Create a payment, run the risk engine, authorize on PayPal, then capture, warn or hold. Send an `Idempotency-Key` header to make a retry safe. |
 | `GET /payments` | List payments (`?status=HELD,WARNED`, `?queue=guardian`) |
 | `GET /payments/{id}` | One payment with risk assessment, audit events and messages |
-| `POST /payments/{id}/confirm` | Sender confirms a medium-risk warning (captures) |
+| `POST /payments/{id}/confirm` | Sender confirms a warning (captures) |
 | `POST /payments/{id}/cancel` | Sender cancels a warned or held payment (voids) |
 | `POST /payments/{id}/approve` | Guardian approves a held payment (captures, idempotent) |
 | `POST /payments/{id}/decline` | Guardian declines a held payment (voids, idempotent) |
 | `POST /payments/{id}/retry` | Guardian retries a failed capture or void |
 | `POST /payments/{id}/messages` | Add a sender or guardian message |
-| `GET /stats` | Counts and totals for the guardian's Insights (attempted payments held from capture, declines, approvals, top scam categories, recipients flagged most often, and the last 30 days of payments by outcome) |
-| `POST /screenshots` | Save a screenshot of the conversation (PNG, JPEG or WebP, up to 4 MB) and transcribe it for the sender to confirm |
-| `GET /screenshots/{id}` | The saved screenshot, for both screens |
-| `POST /activity/ask` | Turn a guardian's plain-English question into grid filters. The AI proposes, a validator keeps only known columns, operators and values; read-only |
-| `POST /assess` | Run the risk engine on a message (and optional amount and payee) without creating a payment |
+| `GET /stats` | Counts and totals for Insights |
+| `POST /screenshots` · `GET /screenshots/{id}` | Save and transcribe a screenshot; fetch it back |
+| `POST /activity/ask` | Plain-English question to validated grid filters (read-only) |
+| `POST /assess` | Run the risk engine on a message without creating a payment |
 | `GET /health` | PayPal and AI configuration and reachability |
+</details>
 
-## Risk engine
+<details>
+<summary><b>Security notes</b></summary>
 
-The engine returns Low, Medium or High. The AI is never the sole decision-maker: rules set a floor, the AI adds context, and a human decides what is held.
+- **Secrets stay on the server.** PayPal credentials, the sandbox card and the Gemini key are read from `.env` (git-ignored) as secret values and are never returned by the API or written to the audit log. The Gemini key is sent in a header, not the URL.
+- **Scam text is treated as hostile.** The message goes to the AI inside a delimiter the scammer cannot predict; AI evidence is kept only if it appears word for word in what the sender received; "Ask about your activity" can only produce filters checked against known columns and values.
+- **Inputs are bounded.** Amounts, text lengths and list sizes are validated; request bodies over 8 MB get a 413; screenshots must be real PNG, JPEG or WebP files under 4 MB and are stored under a content fingerprint.
+- **Rate limits per visitor** on endpoints that create things or call the AI (per minute: 20 payments, 10 screenshots, 20 AI checks, 30 messages), with a plain "please wait N seconds" message.
+- **The CSV report is safe to open in a spreadsheet:** cells that start like a formula are written as text.
+- `npm audit` and `pip-audit` reported no known vulnerabilities on Nov 10, 2026.
+</details>
 
-1. **Rules** (`app/risk/rules.py`): gift or prepaid cards and crypto, wire or "safe account" requests are hard rules (High on their own). Urgency, secrecy, authority threats, a new payee, an unusual amount, a request to mark the payee as trusted, a "new phone number" story, and a new payee with no explanation add weights.
-2. **AI** (`app/risk/ai.py`, Gemini 3.1 Flash-Lite): one call with a strict JSON schema returns a category, indicators with quoted evidence, confidence and a recommended action. The pasted message is treated as untrusted data inside a delimiter it cannot close, and instructions inside it are reported as manipulation.
-3. **Evidence grounding**: every quote the AI returns must literally appear in the message, note, payee or amount (after normalising case, quotes, dashes and spaces). Anything else is dropped and logged, never shown.
-4. **Aggregation** (`app/risk/engine.py`): final level = the highest of the hard-rule level, the level of the combined heuristic score, and the AI's floor (which needs at least one grounded indicator). The AI can raise a level but never lower one. A trusted payee only removes the "new payee" signal.
-5. **Scam-pattern retrieval** (`app/risk/patterns.py`): 25 known scam scripts, written for this project, ranked with BM25 and shown as "similar known pattern". They inform the AI but add no weight.
-
-**Screenshots** (`transcribe_screenshot` in `app/risk/ai.py`): Gemini reads the image and returns each message with who wrote it; only the received messages go to the risk check, after the sender confirms them, so the evidence is grounded in text the sender has seen. The screenshot itself is shown to the guardian next to the text. Instructions written inside the image are transcribed, never followed.
-
-If the AI is not configured, times out (12 s), hits a rate limit or returns invalid JSON, the engine runs on rules alone and the response says "AI check unavailable, rules only". Hard rules still hold dangerous payments. Every number lives in `app/risk/config.py`.
-
-## Evaluation
-
-`eval/cases.json` holds 16 labelled cases written for this project (4 legitimate, 6 scams, 3 ambiguous, 3 adversarial), each with the levels that are acceptable and the evidence that must be cited. The two that test judgment: L3, a $350 deposit to a new contractor (holding it would be annoying), and A1, "Hi it's Sam, new number" asking for a rent deposit (letting it through would be unsafe).
-
-```bash
-.venv/Scripts/python eval/run_eval.py --cached      # offline, from the committed AI replies (no key needed)
-.venv/Scripts/python eval/run_eval.py               # live AI for anything not cached
-.venv/Scripts/python eval/run_eval.py --repeat 3    # also measure run-to-run consistency
-```
-
-It prints the case table, the metrics (scam catch rate, false hold rate, level accuracy, JSON validity, evidence grounding, injection resistance, latency) and a rules-only vs AI-only vs hybrid comparison, and saves them to [eval/results.md](eval/results.md).
-
-### Held-out test set
-
-The 16 cases above were used to tune the engine once before it was frozen, so they flatter it. [eval/heldout_cases.json](eval/heldout_cases.json) has **69 cases written after the freeze and never used for tuning**: 30 scams written from scam patterns published by the FTC and the FBI (each case cites its source page), 14 everyday legitimate payments, 6 ambiguous cases, 8 adversarial cases (disguised words, a scam in Spanish, lookalike letters, attempts to instruct the AI), and 11 real text messages from a public research dataset (8 scams, 3 legitimate). Results are reported as they came out ([eval/results_heldout.md](eval/results_heldout.md)):
-
-| | Rules only | AI only | Hybrid |
-|---|---|---|---|
-| Scams held (High) | 22/46 (48%) | 44/46 (96%) | **44/46 (96%)** |
-| Scams at least warned | 36/46 (78%) | 46/46 (100%) | **46/46 (100%)** |
-| Legitimate payments held | 0 of 17 | 0 of 17 | **0 of 17** |
-| Level accuracy | 47/69 (68%) | 67/69 (97%) | **68/69 (99%)** |
-
-The one hybrid miss: a trusted grandson asking for $300 for concert tickets "on sale in an hour" was held for the guardian, where a warning was expected (over-cautious, not unsafe). The AI alone let a $400 payment to a stranger with no explanation through as Low; the rules kept it at Medium. JSON was valid for 69/69 replies and no quote was dropped. It is still a self-written set plus a handful of real messages, not a measured real-world fraud rate.
-
-**Conditions behind these numbers.** The evaluation ran with a 30-second AI timeout and retries provider errors more generously than the app does. The app waits 12 seconds and then falls back to rules only. In this run 6 of 69 AI replies took longer than 12 seconds (the slowest 26.6 s), so in the live app those would have been rules-only checks, and rules alone held 22 of 46 scams. These numbers show how well the engine classifies when the AI answers; they are not the live app's detection rate. That gap is why a payment that rules call Low still asks the sender to confirm, when the AI did not run, if the payee is new or the amount is much larger than usual (see Payment safety).
-
-```bash
-.venv/Scripts/python eval/run_eval.py --cases eval/heldout_cases.json --out results_heldout --cached
-```
-
-Real messages: Mishra, S. & Soni, D. (2022). *SMS Phishing Dataset for Machine Learning and Pattern Recognition*. Mendeley Data, v1. [doi:10.17632/f45bkkt8pr.1](https://doi.org/10.17632/f45bkkt8pr.1), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copied verbatim except for repairing encoding damage (a lost pound sign or space, HTML entities).
-
-## Payment safety
-
-- Every payment uses PayPal `AUTHORIZE` intent, so nothing is captured until the app, the sender or the guardian decides.
-- A decision first claims the payment inside one SQLite write transaction (`CAPTURING` or `VOIDING`), so two decisions cannot both act. A repeated decision returns the first result; an opposite one gets a clear 409.
-- The authorization is read from PayPal before every capture and void.
-- A payment is **completed only when PayPal reports the capture as settled**. A capture PayPal calls pending shows as "PayPal is still confirming it" and is re-checked until it settles; a declined or failed capture can be retried.
-- The **hold deadline is checked inside the decision itself**, not only by the background sweeper: an approval or confirmation that arrives after it cannot capture.
-- An authorization PayPal never answered is **not treated as failed**, because it may have gone through. It is retried with the same request id and only fails after 5 minutes; any reservation that was made expires by itself.
-- **Pressing Send twice cannot make two payments.** The form sends a submission key; the same key returns the first payment, and the same key with different details is refused.
-- **When the AI check did not run**, a payment the rules call Low still asks the sender to confirm if the payee is new or the amount is more than 3 times their usual (turn off with `CONFIRM_WHEN_AI_UNAVAILABLE=false`).
-- A payment that PayPal captured is never cancelled by the deadline passing while the capture is in flight, and a capture is never retried on top of one PayPal already holds.
-- `PayPal-Request-Id` is `{payment_id}-{action}-{attempt}`: network retries reuse it, so a lost response can never cause a second capture.
-- Held and warned payments are voided when the hold times out (24 hours by default). Silence never captures.
-- Unfinished payments are resumed at startup, and every state change and the main PayPal steps are written to the audit log (internal network retries are not logged one by one).
-
-## Security notes
-
-- **Secrets stay on the server.** PayPal credentials, the sandbox card and the Gemini key are read from `.env` (git-ignored) as secret values, are never returned by the API or written to the audit log, and the Gemini key is sent in a header, not the URL. Error messages from PayPal and Gemini are reduced to the status and PayPal's own explanation.
-- **Scam text is treated as hostile.** The message goes to the AI inside a delimiter the scammer cannot predict, with instructions in it reported as manipulation; AI evidence is kept only if it appears word for word in what the sender received; the AI can raise a risk level but never lower one; and "Ask your activity" can only produce filters that are checked against known columns and values. A broken or unexpected AI reply means "rules only", never a failed or unchecked payment.
-- **Inputs are bounded.** Amounts, text lengths and list sizes are validated; request bodies over 8 MB are refused before they are read; screenshots must be real PNG, JPEG or WebP files under 4 MB and are stored under a content fingerprint, so a name can never point outside the upload folder. All SQL uses parameters.
-- **Sandbox only, checked.** In sandbox mode the app refuses to start unless the PayPal address is a PayPal sandbox host (not the live PayPal, not plain http, not a lookalike), and `/health` reports `sandbox_only` from the real configuration.
-- **Rate limits per visitor** on the endpoints that create things or call the AI (per minute: 20 payments, 10 screenshots, 20 AI checks, 30 messages; configurable in `.env`). Going over returns 429 with a plain "please wait N seconds" message and `Retry-After`. Reading is never limited.
-- **The CSV report is safe to open in a spreadsheet:** cells that start like a formula (a payee named `=HYPERLINK(...)`) are written as text.
-- Dependencies: `npm audit` and `pip-audit` reported no known vulnerabilities on Nov 10, 2026.
+---
 
 ## Honest limits
 
-- All money is PayPal sandbox test money. In the sandbox every payment settles to one sandbox merchant account; the payee name is a label.
-- The risk level is a decision aid, not a validated fraud probability.
-- **There is no real login.** A toggle switches between the sender and guardian views, and the API trusts whoever calls it: anyone who can reach the server can approve, decline or read payments, and the role of a message is whatever the caller says. A real deployment needs sender and guardian accounts, an invitation the sender approves (and can revoke) to link a guardian, and server-side checks that only the linked guardian can decide. An identity provider such as Clerk or Auth0 would supply the sign-in; the pairing and the checks on every endpoint are the work. Until then, run it locally or host only the no-keys demo (fake PayPal, stored AI replies).
-- **Payees are labels.** Trust and history attach to the name typed, and every sandbox payment settles to the same merchant. With real recipients, trust must attach to a verified account, and a changed destination must trigger verification even if the name is the same.
-- **The amount limit is a risk signal, not a cap.** Going over it adds to the score; there are no enforced single-payment or daily limits, and no check for a large payment split into small ones.
-- **Screenshots are sent to Google Gemini** to be read (the image itself, not only the text). They are kept in `data/uploads/` on the server and are not deleted automatically; use made-up conversations in demos.
-- **Guardians are not notified.** The guardian sees a held payment when they open the app (it polls every 3 seconds); there is no email, push or text message yet.
-- **Polling, not webhooks, and one server process.** Our own backend is polled, never PayPal. Production would use PayPal Checkout with payer approval and webhooks with signature verification, durable ownership of in-flight work and more than one worker.
-- **The rules and the AI can both be wrong in ways the evaluation does not cover.** Hard keyword rules can fire on a sentence that warns against a scam ("do not buy gift cards"), and a quote that really is in the message can still be explained wrongly. The evaluation is self-written and small, and was run with a more generous timeout than the app uses.
-- The rate limits are per IP address and in memory.
-- This is a demo of a protection workflow, not a certified fraud-prevention product.
+This is a hackathon prototype of a protection *workflow*, not a certified fraud-prevention product.
 
-## License
+- **There is no real login.** A toggle switches between the sender and guardian views, and the API trusts whoever calls it. A real deployment needs sender and guardian accounts, an invitation the sender approves (and can revoke) to link a guardian, and server-side checks that only the linked guardian can decide. Until then, run it locally or host only the no-keys demo.
+- **Payees are labels.** In the sandbox every payment settles to one merchant account. With real recipients, trust must attach to a verified account, not a typed name.
+- **The amount limit is a risk signal, not a cap.** There are no enforced daily limits and no check for a large payment split into small ones.
+- **Screenshots are sent to Google Gemini** to be read, and are kept on the server. Use made-up conversations in demos.
+- **Guardians are not notified.** They see a held payment when they open the app (it polls every 3 seconds); there is no email, push or text yet.
+- **Polling, not webhooks, and one server process.** Production would use PayPal Checkout with payer approval, signed webhooks and more than one worker.
+- **The rules and the AI can both be wrong** in ways the evaluation does not cover, for example a hard keyword rule firing on a sentence that warns *against* a scam.
 
-MIT, see [LICENSE](LICENSE).
+### Where it goes next
+
+Sender-approved guardian invitations with revocation, real notifications to the guardian, verified payees, enforced spending limits, PayPal webhooks, and a study with older adults and their caregivers to learn whether "on hold" is understood.
+
+---
+
+## Credits and license
+
+MIT License, Copyright (c) 2026 Himani Agrawal. See [LICENSE](LICENSE).
+
+- Real text messages in the held-out set: Mishra, S. & Soni, D. (2022). *SMS Phishing Dataset for Machine Learning and Pattern Recognition*. Mendeley Data, v1. [doi:10.17632/f45bkkt8pr.1](https://doi.org/10.17632/f45bkkt8pr.1), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copied verbatim except for repairing encoding damage.
+- The other held-out cases and the 25 scam scripts are written in our own words from scam patterns published by the FTC, the FBI IC3 and AARP. The demo people, businesses and messages are made up.
+- Inter font (SIL Open Font License) via `@fontsource-variable/inter`. AG Grid and AG Charts Community editions.
+- Design direction for the home page was inspired by a Dribbble motion concept; shapes and copy are our own.
