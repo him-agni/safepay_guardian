@@ -11,6 +11,8 @@
 
 ![SafePay Guardian home page: a shield that follows the cursor and a looping story of a scam payment going on hold](docs/images/hero.png)
 
+**Demo video (under 3 minutes): [watch on YouTube](https://youtu.be/APpIjQ84GyU).** It shows a scam caught and voided on the PayPal sandbox, a real payment going through, the AG Grid case log and the AG Charts insights.
+
 **Jump to:** [The problem](#the-problem) · [What it does](#what-it-does) · [Screenshots](#screenshots) · [Try it in two minutes](#try-it-in-two-minutes-no-keys-needed) · [How it works](#how-it-works) · [PayPal integration](#paypal-integration) · [AI: tools and how they are used](#ai-tools-and-how-they-are-used) · [Evaluation](#evaluation) · [Tests](#tests-and-verification) · [Honest limits](#honest-limits)
 
 ---
