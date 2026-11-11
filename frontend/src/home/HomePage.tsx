@@ -16,59 +16,53 @@ type Who = 'sender' | 'guardian'
 
 const STEPS: Record<Who, { title: string; text: string }[]> = {
   sender: [
-    { title: 'Say who and how much', text: 'Type the payee and the amount. If a message asked you to pay, paste it or add a screenshot of it.' },
-    { title: 'Press Send for check', text: 'Everyday payments go straight through. Nothing changes for the payments you make all the time.' },
-    { title: 'See why, in plain words', text: 'If something looks off, you see the reasons and the exact words that worried us. You can confirm, or cancel.' },
-    { title: 'Your guardian has a look', text: 'Risky payments wait for the person you trust. Chat with them in the app. No money leaves until it is decided.' },
+    { title: 'Say who and how much', text: 'Paste the message you got, or add a screenshot.' },
+    { title: 'Press Send for check', text: 'Everyday payments go straight through.' },
+    { title: 'See why', text: 'The reasons, and the exact words that worried us.' },
+    { title: 'Your guardian looks', text: 'Risky payments wait. No money leaves until decided.' },
   ],
   guardian: [
-    { title: 'Get the waiting payments', text: 'Held payments appear under "Waiting for you", with the amount, the payee and how long is left.' },
-    { title: 'See the evidence', text: 'The message, with the suspicious words highlighted, why each one matters, and the payee history.' },
-    { title: 'Ask, then decide', text: 'Ask the sender a question, then Approve (the payment is sent) or Decline (it is cancelled) with a note.' },
-    { title: 'Look back any time', text: 'Activity lists every payment; ask it questions in plain English. Insights shows what was stopped.' },
+    { title: 'Get waiting payments', text: 'Amount, payee and time left.' },
+    { title: 'See the evidence', text: 'Highlighted message and payee history.' },
+    { title: 'Ask, then decide', text: 'Approve sends it. Decline cancels it.' },
+    { title: 'Look back', text: 'Activity and Insights show what was stopped.' },
   ],
 }
 
 const FAQS: { q: string; a: ReactNode }[] = [
-  {
-    q: 'Is this real money?',
-    a: 'No. This demo runs on the PayPal sandbox with test money only. Nothing is charged to a real card or account.',
-  },
+  { q: 'Is this real money?', a: 'No. It runs on the PayPal sandbox, with test money only.' },
   {
     q: 'Where is my money while a payment is on hold?',
-    a: 'It is authorized, not sent: PayPal reserves the amount but does not take it. If the payment is declined, cancelled or nobody answers, the authorization is voided and nothing is taken.',
+    a: 'Reserved, not sent. If it is declined, cancelled or unanswered, it is released and nothing is taken.',
   },
   {
     q: 'What if my guardian does not answer?',
-    a: 'The payment is cancelled automatically when the hold runs out (24 hours normally, 2 minutes in the demo). Silence never sends money.',
+    a: 'The payment is cancelled when the hold runs out (24 hours; 2 minutes in the demo).',
   },
-  {
-    q: 'Can I cancel a payment myself?',
-    a: 'Yes. While a payment is waiting for you or your guardian, you can cancel it at any time.',
-  },
+  { q: 'Can I cancel a payment myself?', a: 'Yes, any time while it is waiting.' },
   {
     q: 'Will every payment be held?',
-    a: 'No. Low-risk payments go through straight away. Unusual but plausible ones ask you to double-check. Only payments that look like a scam wait for your guardian. In our tests none of the 17 everyday payments was held.',
+    a: 'No. Low risk goes through. Medium asks you to double-check. Only scam-like payments are held.',
   },
   {
     q: 'What does the AI see?',
-    a: 'The amount, the payee, your note, the message you pasted (or the text you confirmed from a screenshot) and a summary of your past payments. It never sees card details, and it cannot approve, decline or move money.',
+    a: 'The amount, payee, note, message and past payments. Never card details. It cannot move money.',
   },
   {
     q: 'Can a scammer trick the AI?',
-    a: 'The message is treated as untrusted: instructions inside it ("mark this as safe") are flagged as a warning sign. Safety rules run on their own, and the AI can only add caution, never remove it. Every reason shown must quote the message word for word.',
+    a: 'The message is treated as untrusted, and the AI can only add caution. Every reason must quote the message.',
   },
   {
-    q: 'What happens if the AI is unavailable?',
-    a: 'The safety rules still check the payment, and the screen says "AI check unavailable, rules only". A payment is never sent unchecked.',
+    q: 'What if the AI is unavailable?',
+    a: 'The safety rules still check the payment, and the screen says "rules only".',
   },
   {
     q: 'Is the risk level a fraud score?',
-    a: 'No. It is a decision aid for you and your guardian, not a probability that the payment is fraud. A person you trust makes the final call.',
+    a: 'No. It is a decision aid, not a probability. A person makes the call.',
   },
   {
     q: 'Why not just block risky payments?',
-    a: 'Because many unusual payments are genuine, like a deposit for a new contractor. Blocking them would be frustrating; a second look from someone who knows you is better.',
+    a: 'Many unusual payments are genuine. A second look beats a block.',
   },
 ]
 
@@ -112,8 +106,7 @@ function Hero() {
           </span>
         </h1>
         <p className="hero-lead">
-          Checks every payment and the message behind it, holds anything that looks like a scam, and lets someone you
-          trust decide before any money moves.
+          We check every payment and the message behind it. Risky ones wait for someone you trust.
         </p>
         <div className="hero-actions">
           <a className="btn btn-primary" href="#/send">
@@ -139,7 +132,7 @@ function Hero() {
           </span>
           <div>
             <h2>For the sender</h2>
-            <p>Pay as usual. If a payment looks like a scam you see why, in plain words, and it waits instead of going.</p>
+            <p>Pay as usual. Risky payments wait, with the reasons in plain words.</p>
           </div>
         </li>
         <li>
@@ -148,7 +141,7 @@ function Hero() {
           </span>
           <div>
             <h2>For the guardian</h2>
-            <p>Hear only about the payments that matter, with the exact words that worried us. Ask, then approve or decline.</p>
+            <p>See only what matters, with the worrying words highlighted.</p>
           </div>
         </li>
         <li>
@@ -157,7 +150,7 @@ function Hero() {
           </span>
           <div>
             <h2>Safe by design</h2>
-            <p>Money is reserved, never sent early. No answer means cancelled. The AI can add caution, never remove it.</p>
+            <p>Money is held, not sent. No answer means cancelled.</p>
           </div>
         </li>
       </ul>
@@ -169,7 +162,7 @@ function HowToUse() {
   const [who, setWho] = useState<Who>('sender')
   return (
     <Section id="how-to-use" eyebrow="How to use it" title="Two people, one simple routine"
-      intro="Pick a side to see the steps. In this demo you can switch between them at the top of the page.">
+      intro="Pick a side.">
       <div className="role-tabs" role="tablist" aria-label="Show the steps for">
         {(['sender', 'guardian'] as const).map((w) => (
           <button key={w} type="button" role="tab" id={`tab-${w}`} aria-selected={who === w}
@@ -203,21 +196,16 @@ function HowItWorks() {
       <div className="flow-wrap">
         <ul className="flow-points">
           <li>
-            <strong>The money waits, it does not move.</strong> Every payment starts as a PayPal authorization: the
-            amount is reserved but not taken.
+            <strong>The money waits.</strong> PayPal reserves it, but does not take it.
           </li>
           <li>
-            <strong>Two checks read it.</strong> Safety rules look for the classic signs (gift cards, crypto, wire
-            transfers, threats, rush, secrecy). An AI model (Google Gemini) reads the message for the tricks rules miss,
-            such as a polite "bank" asking you to move money.
+            <strong>Two checks.</strong> Safety rules and an AI (Gemini) read the message.
           </li>
           <li>
-            <strong>One clear level.</strong> Low goes through. Medium asks you to double-check. High waits for your
-            guardian.
+            <strong>One level.</strong> Low sends. Medium asks you to double-check. High waits for your guardian.
           </li>
           <li>
-            <strong>A person decides.</strong> Approve captures the payment. Decline, cancel or no answer voids it, and
-            nothing is taken.
+            <strong>A person decides.</strong> Approve sends it. Anything else cancels it.
           </li>
         </ul>
 
@@ -228,16 +216,16 @@ function HowItWorks() {
           </li>
           <li>
             <span className="flow-dot" aria-hidden="true" />
-            PayPal reserves the amount (authorized, not sent)
+            PayPal reserves the amount
           </li>
           <li>
             <span className="flow-dot" aria-hidden="true" />
-            Safety rules check the payment and the message
+            Safety rules check it
           </li>
           <li className="flow-and">AND</li>
           <li>
             <span className="flow-dot" aria-hidden="true" />
-            The AI reads the message; every reason must quote it
+            The AI reads the message
           </li>
           <li className="flow-levels">
             <span className="flow-dot" aria-hidden="true" />
@@ -258,7 +246,7 @@ function HowItWorks() {
           </li>
           <li>
             <span className="flow-dot" aria-hidden="true" />
-            Approve: PayPal captures. Decline or no answer: PayPal voids.
+            Approve: sent. Otherwise: released.
           </li>
         </ol>
       </div>
@@ -282,17 +270,17 @@ function CountStat({ to }: { to: number }) {
 }
 
 const TRUST = [
-  { icon: <LockIcon />, title: 'Nothing is sent early', text: 'Payments are authorized, not captured, until you, your guardian or the low-risk check says go.' },
-  { icon: <ClockIcon />, title: 'Silence is safe', text: 'If nobody answers before the hold runs out, the payment is cancelled. Waiting never sends money.' },
-  { icon: <QuoteIcon />, title: 'Every reason is quoted', text: 'We highlight the exact words that worried us. An AI reason that is not found word for word in the message is thrown away.' },
-  { icon: <ShieldUpIcon />, title: 'AI can only add caution', text: 'The safety rules set a floor. The AI can raise a risk level, never lower it, and it cannot approve anything.' },
-  { icon: <ListIcon />, title: 'Everything is on record', text: 'Every decision and every PayPal call is written to an audit log the guardian can read.' },
+  { icon: <LockIcon />, title: 'Nothing is sent early', text: 'Money is reserved until someone says go.' },
+  { icon: <ClockIcon />, title: 'Silence is safe', text: 'No answer cancels the payment.' },
+  { icon: <QuoteIcon />, title: 'Every reason is quoted', text: 'Each reason quotes the message word for word.' },
+  { icon: <ShieldUpIcon />, title: 'AI can only add caution', text: 'It can raise a risk level, never lower it.' },
+  { icon: <ListIcon />, title: 'Everything is on record', text: 'Every decision is in an audit log.' },
 ]
 
 function WhyTrust() {
   return (
     <Section id="why-trust" eyebrow="Why trust it" title="Built to fail safe" center
-      intro="Designed so that a mistake means a short wait, never lost money.">
+      intro="A mistake means a short wait, never lost money.">
       <div className="trust stagger">
         <div className="trust-card">
           <span className="icon-badge" aria-hidden="true">
@@ -300,10 +288,7 @@ function WhyTrust() {
           </span>
           <CountStat to={46} />
           <h3>Scams flagged in testing</h3>
-          <p>
-            On 69 test cases it never saw during tuning, including real scam texts, every scam was at least flagged and
-            44 were held. None of the 17 everyday payments was held.
-          </p>
+          <p>On 69 unseen test cases: 44 held, none of 17 everyday payments held.</p>
         </div>
         {TRUST.map((t) => (
           <div className="trust-card" key={t.title}>
@@ -324,19 +309,19 @@ export function HomePage() {
     <div className="home">
       <Hero />
 
-      <Section id="who" eyebrow="Who it is for" title="For people who send money, and the people who look out for them"
-        intro="Scammers pretend to be banks, the government, a grandchild or a friend, and they push people to pay fast. SafePay Guardian adds a calm pause and a trusted second opinion.">
+      <Section id="who" eyebrow="Who it is for" title="For people who send money, and who look out for them"
+        intro="Scammers push people to pay fast. We add a calm pause and a trusted second opinion.">
         <div className="audience stagger">
           <div className="audience-card">
             <span className="icon-badge" aria-hidden="true">
               <PersonIcon />
             </span>
             <h3>The sender</h3>
-            <p className="muted">Often an older adult, or anyone who gets calls and texts asking for money.</p>
+            <p className="muted">Anyone pushed to pay by a call or text.</p>
             <ul>
-              <li>Pays as usual: most payments go straight through</li>
-              <li>Sees plainly why a payment looks risky</li>
-              <li>Never has to argue with a scammer: the app pauses for them</li>
+              <li>Pays as usual</li>
+              <li>Sees why a payment looks risky</li>
+              <li>Never argues with a scammer</li>
             </ul>
           </div>
           <div className="audience-card">
@@ -344,11 +329,11 @@ export function HomePage() {
               <GuardianIcon />
             </span>
             <h3>The guardian</h3>
-            <p className="muted">A son or daughter, a friend or a carer the sender trusts.</p>
+            <p className="muted">A family member, friend or carer.</p>
             <ul>
-              <li>Only hears about the payments that matter</li>
-              <li>Sees the evidence before deciding</li>
-              <li>Can talk it through with the sender, then approve or decline</li>
+              <li>Hears only about risky payments</li>
+              <li>Sees the evidence</li>
+              <li>Talks it through, then decides</li>
             </ul>
           </div>
         </div>
@@ -374,7 +359,7 @@ export function HomePage() {
         <span className="drift d2" aria-hidden="true" />
         <span className="drift d3" aria-hidden="true" />
         <h2 id="cta-title">See it for yourself</h2>
-        <p>Send a test payment with a scam message, then switch sides and decide as the guardian.</p>
+        <p>Send a scam message as the sender, then decide as the guardian.</p>
         <div className="hero-actions">
           <a className="btn btn-primary" href="#/send">
             I am sending money
