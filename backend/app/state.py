@@ -632,6 +632,11 @@ class PaymentService:
 
     def _settle_from_paypal(self, payment_id: str, from_status: Status, paypal_status: str, during: str) -> bool:
         """PayPal already shows a final state: record it instead of calling capture or void."""
+        if paypal_status == "CAPTURED" and during == "capture":
+            # "The authorization was captured" is not the same as "this payment was completed": look at the
+            # capture itself (it may be pending or declined, or we may have lost its id).
+            self._confirm_existing_capture(payment_id, from_status)
+            return True
         with self._conn() as conn:
             reason = self._row(conn, payment_id)["void_reason"]
         target, message = {
@@ -666,17 +671,8 @@ class PaymentService:
                              {"last_error": f"Could not check the authorization: {exc.message}"},
                              ("paypal.capture_failed", {**exc.as_detail(), "stage": "read"}))
             return
-        if paypal_status == "CAPTURED" and row["paypal_capture_id"]:
-            # PayPal shows a capture and we know which one: its own status decides, not the authorization's
-            try:
-                info = self._with_retry(lambda: self.gateway.get_capture(row["paypal_capture_id"]))
-            except GatewayError as exc:
-                self._transition(payment_id, {S.CAPTURING}, S.CAPTURE_FAILED, "system",
-                                 {"last_error": f"Could not check the capture: {exc.message}"},
-                                 ("paypal.capture_failed", {**exc.as_detail(), "stage": "read_capture"}))
-                return
-            self._apply_capture_status(payment_id, S.CAPTURING, row["paypal_capture_id"], info.status, attempt,
-                                       {"paypal_debug_id": info.debug_id, "reconciled": True})
+        if paypal_status == "CAPTURED":
+            self._confirm_existing_capture(payment_id, S.CAPTURING)
             return
         if paypal_status not in USABLE_AUTH_STATUSES:
             if not self._settle_from_paypal(payment_id, S.CAPTURING, paypal_status, "capture"):
@@ -721,6 +717,32 @@ class PaymentService:
             self._transition(payment_id, {from_status}, S.CAPTURE_PENDING, "system",
                              {"paypal_capture_id": capture_id, "last_error": None},
                              ("paypal.capture_pending", detail))
+
+    def _confirm_existing_capture(self, payment_id: str, from_status: Status) -> None:
+        """PayPal shows the authorization as captured. Read the capture itself and let ITS status decide.
+
+        If we know the capture id we read it; if we lost it (the answer to our capture was lost, or we stopped
+        before saving it) we look it up on the order. A capture that cannot be found or read is never assumed to be
+        a completed payment: the payment goes to CAPTURE_FAILED, and a retry checks again."""
+        with self._conn() as conn:
+            row = self._row(conn, payment_id)
+        capture_id, attempt = row["paypal_capture_id"], row["capture_attempt"]
+        try:
+            if capture_id:
+                info = self._with_retry(lambda: self.gateway.get_capture(capture_id))
+            else:
+                info = self._with_retry(lambda: self.gateway.find_capture(
+                    order_id=row["paypal_order_id"], authorization_id=row["paypal_authorization_id"]))
+                if info is None:
+                    raise GatewayError("client", "PayPal shows a capture but returned no capture record",
+                                       issue="CAPTURE_NOT_FOUND")
+        except GatewayError as exc:
+            self._transition(payment_id, {from_status}, S.CAPTURE_FAILED, "system",
+                             {"last_error": f"Could not confirm the capture: {exc.message}"},
+                             ("paypal.capture_failed", {**exc.as_detail(), "stage": "read_capture"}))
+            return
+        self._apply_capture_status(payment_id, from_status, info.capture_id or capture_id, info.status, attempt,
+                                   {"paypal_debug_id": info.debug_id, "reconciled": True})
 
     def _reconcile_capture(self, payment_id: str) -> None:
         """Re-read a pending capture from PayPal and settle it. A failed read just tries again later."""

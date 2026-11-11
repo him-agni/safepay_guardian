@@ -101,6 +101,8 @@ class PaymentGateway(Protocol):
 
     def get_capture(self, capture_id: str) -> CaptureResult: ...
 
+    def find_capture(self, *, order_id: str, authorization_id: str) -> CaptureResult | None: ...
+
     def void(self, authorization_id: str, *, request_id: str) -> str | None: ...
 
     def check(self) -> bool: ...
@@ -270,6 +272,16 @@ class PayPalClient:
         body = resp.json()
         return CaptureResult(body.get("id", capture_id), body.get("status", ""), resp.headers.get("paypal-debug-id"))
 
+    def find_capture(self, *, order_id: str, authorization_id: str) -> CaptureResult | None:
+        """The latest capture PayPal holds for this order, for when we lost the id of a capture we made."""
+        resp = self._request("GET", f"/v2/checkout/orders/{order_id}", what="read order")
+        units = resp.json().get("purchase_units") or [{}]
+        captures = (units[0].get("payments") or {}).get("captures") or []
+        if not captures:
+            return None
+        last = captures[-1]
+        return CaptureResult(last["id"], last.get("status", ""), resp.headers.get("paypal-debug-id"))
+
     def void(self, authorization_id: str, *, request_id: str) -> str | None:
         resp = self._request(
             "POST", f"/v2/payments/authorizations/{authorization_id}/void", what="void", request_id=request_id
@@ -417,6 +429,15 @@ class FakePayPal:
             return CaptureResult(capture_id, self.capture_statuses[capture_id], "fake-debug")
 
         return self._run("get_capture", None, go)  # type: ignore[return-value]
+
+    def find_capture(self, *, order_id: str, authorization_id: str) -> CaptureResult | None:
+        def go() -> CaptureResult | None:
+            mine = [cid for auth, cid in self.captures if auth == authorization_id]
+            if not mine:
+                return None
+            return CaptureResult(mine[-1], self.capture_statuses.get(mine[-1], ""), "fake-debug")
+
+        return self._run("find_capture", None, go)  # type: ignore[return-value]
 
     def void(self, authorization_id: str, *, request_id: str) -> str | None:
         def go() -> str:

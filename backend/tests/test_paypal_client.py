@@ -130,3 +130,29 @@ def test_check_reports_bad_credentials_as_unreachable(tmp_path):
         return httpx.Response(401, json={"error": "invalid_client"})
 
     assert make_client(tmp_path, handler).check() is False
+
+
+def test_find_capture_reads_the_latest_capture_from_the_order(tmp_path):
+    seen = []
+
+    def handler(req):
+        seen.append(req)
+        if req.url.path == "/v1/oauth2/token":
+            return token_response()
+        return httpx.Response(200, headers={"paypal-debug-id": "dbg-9"}, json={
+            "id": "ORDER1", "purchase_units": [{"payments": {"captures": [
+                {"id": "CAP-OLD", "status": "DECLINED"}, {"id": "CAP-NEW", "status": "PENDING"}]}}],
+        })
+
+    found = make_client(tmp_path, handler).find_capture(order_id="ORDER1", authorization_id="AUTH1")
+    assert (found.capture_id, found.status, found.debug_id) == ("CAP-NEW", "PENDING", "dbg-9")
+    assert seen[1].method == "GET" and seen[1].url.path == "/v2/checkout/orders/ORDER1"
+
+
+def test_find_capture_returns_none_when_the_order_has_no_capture(tmp_path):
+    def handler(req):
+        if req.url.path == "/v1/oauth2/token":
+            return token_response()
+        return order_response()  # an order with an authorization and no captures
+
+    assert make_client(tmp_path, handler).find_capture(order_id="ORDER1", authorization_id="AUTH1") is None

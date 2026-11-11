@@ -168,3 +168,66 @@ def test_a_pending_capture_appears_in_the_guardian_queue_and_is_not_counted_as_a
     queue = env.service.list_payments(queue="guardian")
     assert p["id"] in [row["id"] for row in queue]
     assert env.service.stats()["approved_by_guardian"]["count"] == 0
+
+
+# ---------------------------------------------------------------- PayPal shows a capture we have no record of
+
+
+def captured_behind_our_back(env, payment, status: str | None = "COMPLETED") -> str:
+    """PayPal captured this authorization but we never saved the capture id (the reply was lost, or we stopped)."""
+    auth = payment["paypal"]["authorization_id"]
+    env.paypal.set_status(auth, "CAPTURED")
+    if status is None:
+        return ""
+    env.paypal.captures.append((auth, "FAKECAPLOST"))
+    env.paypal.set_capture_status("FAKECAPLOST", status)
+    return "FAKECAPLOST"
+
+
+def test_a_capture_we_lost_track_of_is_found_and_confirmed_not_assumed(env):
+    p = env.pay("high")
+    lost = captured_behind_our_back(env, p, "COMPLETED")
+
+    done = env.act(p["id"], "approve").json()
+    assert done["status"] == "CAPTURED"
+    assert done["paypal"]["capture_id"] == lost  # the id was recovered from the order
+    assert not any(op == "capture" for op, _ in env.paypal.calls)  # and nothing was captured a second time
+
+
+def test_a_lost_capture_that_is_still_pending_stays_pending(env):
+    p = env.pay("high")
+    lost = captured_behind_our_back(env, p, "PENDING")
+    done = env.act(p["id"], "approve").json()
+    assert done["status"] == "CAPTURE_PENDING"
+    assert done["paypal"]["capture_id"] == lost
+
+
+def test_a_lost_capture_that_was_declined_is_not_a_completed_payment(env):
+    p = env.pay("high")
+    captured_behind_our_back(env, p, "DECLINED")
+    done = env.act(p["id"], "approve").json()
+    assert done["status"] == "CAPTURE_FAILED"
+    assert "paypal.captured" not in env.event_types(p["id"])
+
+
+def test_an_authorization_that_shows_captured_with_no_capture_record_is_never_assumed_completed(env):
+    p = env.pay("high")
+    captured_behind_our_back(env, p, None)  # PayPal says CAPTURED but returns no capture
+
+    done = env.act(p["id"], "approve").json()
+    assert done["status"] == "CAPTURE_FAILED"
+    assert "Could not confirm the capture" in done["last_error"]
+    assert "paypal.captured" not in env.event_types(p["id"])
+
+    again = env.act(p["id"], "retry").json()  # a retry checks again, and still does not guess
+    assert again["status"] == "CAPTURE_FAILED"
+
+
+def test_failing_to_read_the_order_waits_and_a_retry_can_still_confirm(env):
+    p = env.pay("high")
+    captured_behind_our_back(env, p, "COMPLETED")
+    for _ in range(3):
+        env.paypal.inject("find_capture", GatewayError("network", "read order failed: ReadTimeout"))
+
+    assert env.act(p["id"], "approve").json()["status"] == "CAPTURE_FAILED"
+    assert env.act(p["id"], "retry").json()["status"] == "CAPTURED"
