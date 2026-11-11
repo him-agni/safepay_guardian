@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { parseHash } from './route'
 
 /** Calls `load` now and then every `intervalMs`, pausing while the tab is hidden.
  *  Restarts when `key` changes. `enabled = false` stops polling (e.g. once a payment is final). */
@@ -67,12 +68,7 @@ export function useCountdown(seconds: number | null) {
 
 /** Minimal hash router: "#/send/abc" -> ["send", "abc"]. */
 export function useHashRoute(): string[] {
-  const read = () =>
-    window.location.hash
-      .replace(/^#\/?/, '')
-      .split('/')
-      .filter(Boolean)
-      .map(decodeURIComponent)
+  const read = () => parseHash(window.location.hash)
   const [parts, setParts] = useState(read)
   useEffect(() => {
     const onChange = () => setParts(read())

@@ -269,9 +269,12 @@ const rowClassRules: RowClassRules<ActivityRow> = {
 // Exported to CSV in this order; evidence is expanded to every quote, not just the first.
 const CSV_COLUMNS = ['created', 'payee', 'amount', 'level', 'category', 'evidence', 'status', 'decision', 'decidedBy', 'checkedBy']
 
+// The most payments loaded at once. If the list is exactly this long there may be older ones that are not shown.
+const ACTIVITY_LIMIT = 500
+
 export function ActivityPage() {
   const theme = GRID_THEMES[useTheme()]
-  const poll = usePoll(() => api.listPayments({ limit: 500 }), 3000, 'guardian-activity')
+  const poll = usePoll(() => api.listPayments({ limit: ACTIVITY_LIMIT }), 3000, 'guardian-activity')
   const gridRef = useRef<AgGridReact<ActivityRow>>(null)
   const [search, setSearch] = useState('')
   const [preset, setPreset] = useState<PresetId>(() => load<PresetId>(PRESET_KEY) ?? 'all')
@@ -398,6 +401,12 @@ export function ActivityPage() {
         Every payment, live. Hover a risk or evidence cell to see why it was flagged; press Enter or use Review to open
         it. Decisions are made on the review page, where the full evidence is.
       </p>
+      {rows.length >= ACTIVITY_LIMIT && (
+        <p className="banner banner-info" role="status">
+          Showing the latest {ACTIVITY_LIMIT} payments. Older ones are not loaded, so filters, totals and the CSV report
+          leave them out.
+        </p>
+      )}
 
       <form
         className="ask"

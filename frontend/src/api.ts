@@ -42,14 +42,22 @@ export function errorMessage(body: unknown, status: number): string {
   return 'Something went wrong. Please try again.'
 }
 
+const REQUEST_TIMEOUT_MS = 60_000
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
     res = await fetch(BASE + path, {
+      // A request that never answers ends with a message instead of an endless spinner. Long enough for the AI
+      // check and PayPal's retries; sending again is safe because creating a payment carries a submission key.
+      signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(REQUEST_TIMEOUT_MS) : undefined,
       ...init,
       headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     })
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new ApiError('SafePay is taking too long to answer. Please try again in a moment.', 0)
+    }
     throw new ApiError('We could not reach SafePay. Please check that the server is running.', 0)
   }
   const body: unknown = await res.json().catch(() => null)
