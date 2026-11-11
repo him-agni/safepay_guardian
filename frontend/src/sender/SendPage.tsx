@@ -4,6 +4,7 @@ import { ErrorNote } from '../components'
 import { amountProblem, cleanAmount, money, SCREENSHOT_TYPES, screenshotProblem, senderStatusWord, timeAgo } from '../format'
 import { go, usePoll } from '../hooks'
 import { remember } from '../store'
+import { attemptFor, type Attempt } from './submission'
 
 const EMPTY: NewPayment = { payee_name: '', amount: '', note: '', message_text: '' }
 
@@ -81,6 +82,7 @@ export function SendPage() {
   const recent = usePoll(() => api.listPayments({ limit: 8 }), 3000, 'sender-recent')
 
   const [shot, setShot] = useState<Shot | null>(null)
+  const attempt = useRef<Attempt | null>(null)
 
   // Free a local preview only when it is replaced or the page closes (not when its status changes).
   const previewRef = useRef<string | null>(null)
@@ -138,13 +140,17 @@ export function SendPage() {
     }
     setBusy(true)
     setError(null)
+    const payment = {
+      ...form,
+      payee_name: form.payee_name.trim(),
+      amount: cleanAmount(form.amount),
+      screenshot_id: shot?.id,
+    }
+    // the same details sent again after a failure keep their key, so a lost answer never makes a second payment
+    attempt.current = attemptFor(attempt.current, payment)
     try {
-      const p = await api.createPayment({
-        ...form,
-        payee_name: form.payee_name.trim(),
-        amount: cleanAmount(form.amount),
-        screenshot_id: shot?.id,
-      })
+      const p = await api.createPayment(payment, attempt.current.key)
+      attempt.current = null
       remember(p)
       go(`/send/${p.id}`)
     } catch (err) {

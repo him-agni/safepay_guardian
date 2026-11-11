@@ -83,7 +83,13 @@ export const screenshotSrc = (url: string) => BASE + url
 export const api = {
   health: () => request<Health>('/health'),
   stats: () => request<Stats>('/stats'),
-  createPayment: (p: NewPayment) => request<Payment>('/payments', { method: 'POST', body: JSON.stringify(p) }),
+  /** `key` is the submission key: sending the same one again returns the first payment instead of making another. */
+  createPayment: (p: NewPayment, key?: string) =>
+    request<Payment>('/payments', {
+      method: 'POST',
+      body: JSON.stringify(p),
+      headers: key ? { 'Idempotency-Key': key } : {},
+    }),
   getPayment: (id: string) => request<Payment>(`/payments/${encodeURIComponent(id)}`),
   listPayments: (params: { status?: string; queue?: 'guardian'; limit?: number } = {}) => {
     const q = new URLSearchParams()

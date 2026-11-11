@@ -193,6 +193,14 @@ def status_text(status: str, void_reason: str | None) -> dict:
     return {"sender": sender[st], "guardian": guardian[st]}
 
 
+def _fingerprint(payee_name: str, amount_cents: int, currency: str, note: str, message_text: str,
+                 screenshot_id: str | None, payee_email: str | None) -> str:
+    """What makes two submissions 'the same payment': every field the sender chose."""
+    parts = {"payee": " ".join(payee_name.split()).lower(), "amount_cents": amount_cents, "currency": currency,
+             "note": note, "message": message_text, "screenshot": screenshot_id, "email": payee_email}
+    return hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()
+
+
 def _status_text_for(status: Status, row: sqlite3.Row) -> dict:
     text = status_text(status.value, row["void_reason"])
     if status == S.CREATED and row["last_error"]:
@@ -310,10 +318,27 @@ class PaymentService:
 
     # ---------------------------------------------------------------- create
 
-    def create_payment(
+    def create_payment(self, **kwargs) -> dict:
+        return self.create_or_replay(**kwargs)[0]
+
+    def create_or_replay(
         self, *, payee_name: str, amount_cents: int, note: str = "", message_text: str = "",
         payee_email: str | None = None, currency: str = "USD", screenshot_id: str | None = None,
-    ) -> dict:
+        idempotency_key: str | None = None,
+    ) -> tuple[dict, bool]:
+        """Create a payment, or, if this submission key was already used for the same details, return the first
+        payment again. Returns (payment, replayed).
+
+        The browser sends one key per intended payment. If the answer is lost and the sender presses Send
+        again, the second request finds the first payment instead of creating and authorizing another.
+        The same key with different details is refused: it is a mistake, not a retry.
+        """
+        fingerprint = _fingerprint(payee_name, amount_cents, currency, note, message_text, screenshot_id,
+                                   payee_email)
+        if idempotency_key:
+            existing = self._find_by_key(idempotency_key)
+            if existing is not None:
+                return self._replay(existing, fingerprint, idempotency_key), True
         if screenshot_id is not None:
             self.screenshot_file(screenshot_id, invalid=True)
         payee, ctx = self._build_context(payee_name, amount_cents, note, message_text, currency=currency,
@@ -322,31 +347,54 @@ class PaymentService:
         risk = self.assessor.assess(ctx)  # outside any transaction: the AI call can take seconds
 
         payment_id = uuid.uuid4().hex
-        with self._conn() as conn, db.transaction(conn):
-            ts = db.iso(db.utcnow())
-            conn.execute(
-                """INSERT INTO payments (id, sender_id, payee_id, amount_cents, currency, note, message_text,
-                       screenshot_path, status, risk_level, risk_score, risk_mode, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (payment_id, db.SENDER_ID, payee["id"], amount_cents, currency, note, message_text,
-                 screenshot_id, S.CREATED.value, risk.level, risk.score, risk.mode, ts, ts),
-            )
-            self._insert_assessment(conn, payment_id, risk)
-            db.add_event(conn, payment_id, "sender", "payment.created", {
-                "amount": format_amount(amount_cents), "currency": currency, "payee": name,
-                "payee_is_new": ctx.payee_is_new, "payee_trusted": ctx.payee_trusted,
-                "screenshot": screenshot_id is not None,
-            })
-            db.add_event(conn, payment_id, "system", "risk.assessed", {
-                "level": risk.level, "score": risk.score, "mode": risk.mode,
-                "indicators": [i["type"] for i in risk.indicators],
-                "dropped_evidence": risk.dropped_evidence,  # AI quotes not found in the input: logged, not shown
-                "patterns": [p["id"] for p in risk.patterns],
-                "ai_error": risk.ai_error, "model": risk.model, "latency_ms": risk.latency_ms,
-            })
+        try:
+            with self._conn() as conn, db.transaction(conn):
+                ts = db.iso(db.utcnow())
+                conn.execute(
+                    """INSERT INTO payments (id, sender_id, payee_id, amount_cents, currency, note, message_text,
+                           screenshot_path, status, risk_level, risk_score, risk_mode, created_at, updated_at,
+                           idempotency_key, request_fingerprint)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (payment_id, db.SENDER_ID, payee["id"], amount_cents, currency, note, message_text,
+                     screenshot_id, S.CREATED.value, risk.level, risk.score, risk.mode, ts, ts,
+                     idempotency_key or None, fingerprint),
+                )
+                self._insert_assessment(conn, payment_id, risk)
+                db.add_event(conn, payment_id, "sender", "payment.created", {
+                    "amount": format_amount(amount_cents), "currency": currency, "payee": name,
+                    "payee_is_new": ctx.payee_is_new, "payee_trusted": ctx.payee_trusted,
+                    "screenshot": screenshot_id is not None, "idempotent": bool(idempotency_key),
+                })
+                db.add_event(conn, payment_id, "system", "risk.assessed", {
+                    "level": risk.level, "score": risk.score, "mode": risk.mode,
+                    "indicators": [i["type"] for i in risk.indicators],
+                    "dropped_evidence": risk.dropped_evidence,  # AI quotes not found in the input: logged only
+                    "patterns": [p["id"] for p in risk.patterns],
+                    "ai_error": risk.ai_error, "model": risk.model, "latency_ms": risk.latency_ms,
+                })
+        except sqlite3.IntegrityError:
+            # two requests with the same key raced: the other one inserted first, so this one is the retry
+            existing = self._find_by_key(idempotency_key) if idempotency_key else None
+            if existing is None:
+                raise
+            return self._replay(existing, fingerprint, idempotency_key), True
 
         self._authorize_and_route(payment_id)
-        return self.get_payment(payment_id)
+        return self.get_payment(payment_id), False
+
+    def _find_by_key(self, key: str) -> sqlite3.Row | None:
+        with self._conn() as conn:
+            return conn.execute(
+                "SELECT id, request_fingerprint FROM payments WHERE sender_id = ? AND idempotency_key = ?",
+                (db.SENDER_ID, key),
+            ).fetchone()
+
+    def _replay(self, existing: sqlite3.Row, fingerprint: str, key: str) -> dict:
+        if existing["request_fingerprint"] != fingerprint:
+            raise Conflict("That submission was already used for a different payment. "
+                           "Please check the details and send again.")
+        self._event(existing["id"], "sender", "payment.create_replayed", {"idempotency_key": key})
+        return self.get_payment(existing["id"])
 
     def _build_context(
         self, payee_name: str, amount_cents: int, note: str, message_text: str, *, currency: str = "USD",

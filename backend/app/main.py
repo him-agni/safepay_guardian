@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -141,12 +141,24 @@ def create_app(
         }
 
     @app.post("/payments", status_code=201, dependencies=[Depends(limiter.dependency("payments"))])
-    def create_payment(body: CreatePaymentRequest) -> dict:
-        """Run the risk engine, authorize on PayPal, then capture, warn or hold by risk level."""
-        return service.create_payment(
+    def create_payment(
+        body: CreatePaymentRequest, response: Response,
+        idempotency_key: Optional[str] = Header(default=None, pattern=r"^[A-Za-z0-9_-]{8,64}$"),
+    ) -> dict:
+        """Run the risk engine, authorize on PayPal, then capture, warn or hold by risk level.
+
+        Send an Idempotency-Key header (one per intended payment). Sending the same request again returns the
+        first payment (200, Idempotent-Replayed: true) instead of creating another.
+        """
+        payment, replayed = service.create_or_replay(
             payee_name=body.payee_name, payee_email=body.payee_email, amount_cents=body.amount_cents,
             note=body.note, message_text=body.message_text, screenshot_id=body.screenshot_id,
+            idempotency_key=idempotency_key,
         )
+        if replayed:
+            response.status_code = 200
+            response.headers["Idempotent-Replayed"] = "true"
+        return payment
 
     @app.get("/payments")
     def list_payments(

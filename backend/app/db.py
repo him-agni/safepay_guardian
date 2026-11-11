@@ -158,6 +158,9 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
 # Columns added after a table was first created: (table, column, definition).
 ADDED_COLUMNS = [
     ("assessments", "components_json", "TEXT NOT NULL DEFAULT '{}'"),
+    # a retried submission of the same payment finds the first one by its key (see PaymentService.create_payment)
+    ("payments", "idempotency_key", "TEXT"),
+    ("payments", "request_fingerprint", "TEXT"),
 ]
 
 
@@ -169,6 +172,8 @@ def migrate(path: Path) -> None:
             existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
             if column not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_idempotency ON payments(sender_id, "
+                     "idempotency_key) WHERE idempotency_key IS NOT NULL")
         conn.executemany("INSERT OR IGNORE INTO users (id, name, role) VALUES (?, ?, ?)", SEED_USERS)
     finally:
         conn.close()
