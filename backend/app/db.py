@@ -161,6 +161,8 @@ ADDED_COLUMNS = [
     # a retried submission of the same payment finds the first one by its key (see PaymentService.create_payment)
     ("payments", "idempotency_key", "TEXT"),
     ("payments", "request_fingerprint", "TEXT"),
+    # why a Low payment was sent to the sender for a double-check anyway (the AI check was not available)
+    ("payments", "route_note", "TEXT"),
 ]
 
 

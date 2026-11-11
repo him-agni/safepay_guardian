@@ -103,6 +103,8 @@ export interface Payment {
   decision_note: string | null
   void_reason: 'sender_cancel' | 'guardian_decline' | 'timeout' | null
   last_error: string | null
+  /** Why a Low payment was still sent to the sender for a double-check (the AI check did not run). */
+  route_note?: string | null
   is_seed: boolean
   category: string | null
   screenshot_url: string | null

@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     stuck_after_seconds: float = 180.0  # in-flight payments older than this are resumed
     inflight_wait_seconds: float = 15.0  # a repeated decision waits this long for the first one
     capture_recheck_seconds: float = 20.0  # wait before the sweeper re-reads a pending capture
+    # When the AI check did not run, a payment that rules alone call Low still asks the sender to confirm if the
+    # payee is new or the amount is much larger than usual. Rules alone caught about half the held-out scams.
+    confirm_when_ai_unavailable: bool = True
     auth_retry_seconds: float = 15.0  # wait before retrying an authorization PayPal never answered
     auth_give_up_seconds: float = 300.0  # then stop trying and report that the payment could not be started
     paypal_retry_backoff_seconds: float = 0.5

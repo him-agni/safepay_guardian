@@ -165,7 +165,12 @@ function StatusCard({
             <h1 aria-live="polite">Please check this payment before it is sent</h1>
           </div>
           <Summary p={p} />
-          <AiBanner risk={p.risk} />
+          {p.route_note && (
+            <div className="banner banner-info" role="status">
+              {p.route_note}
+            </div>
+          )}
+          {!p.route_note && <AiBanner risk={p.risk} />}
           <Reasons p={p} heading="Why we are asking" />
           <Evidence p={p} />
           <p className="lead">If you know this person and expected this payment, you can send it.</p>

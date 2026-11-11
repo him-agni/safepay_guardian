@@ -26,6 +26,7 @@ import hashlib
 import json
 import re
 import sqlite3
+import statistics
 import threading
 import time
 import uuid
@@ -41,6 +42,7 @@ from .config import Settings
 from .paypal import (CAPTURE_DONE, CAPTURE_REJECTED, USABLE_AUTH_STATUSES, GatewayError, PaymentGateway,
                      format_amount, request_id)
 from .risk import ai as ai_mod
+from .risk import config as risk_config
 from .risk.types import Assessor, PaymentContext, RiskResult
 
 T = TypeVar("T")
@@ -508,13 +510,50 @@ class PaymentService:
         with self._conn() as conn:
             level = self._row(conn, payment_id)["risk_level"]
         if level == "low":
-            self._decide(payment_id, ACTIONS["auto_capture"])
+            note = self._degraded_note(payment_id)
+            if note:
+                self._transition(payment_id, {S.AUTHORIZED}, S.WARNED, "system", {"route_note": note},
+                                 ("hold.warned", {"reason": "AI check unavailable: sender must confirm",
+                                                  "policy": "ai_unavailable_low", "note": note}))
+            else:
+                self._decide(payment_id, ACTIONS["auto_capture"])
         elif level == "medium":
             self._transition(payment_id, {S.AUTHORIZED}, S.WARNED, "system",
                              event=("hold.warned", {"reason": "medium risk: sender must confirm"}))
         else:
             self._transition(payment_id, {S.AUTHORIZED}, S.HELD, "system",
                              event=("hold.placed", {"reason": "high risk: guardian must decide"}))
+
+    def _degraded_note(self, payment_id: str) -> str | None:
+        """When the AI check did not run, rules alone are the only check, and they miss scams that need context.
+        A payment they call Low then still needs the sender's OK if the payee is new or the amount is far above
+        usual. Returns the reason to show, or None to let it through."""
+        if not self.settings.confirm_when_ai_unavailable:
+            return None
+        with self._conn() as conn:
+            row = self._row(conn, payment_id)
+            ai_error = conn.execute(
+                "SELECT ai_error FROM assessments WHERE payment_id = ? ORDER BY id DESC LIMIT 1", (payment_id,)
+            ).fetchone()
+            if not ai_error or not ai_error["ai_error"]:
+                return None
+            payee = conn.execute("SELECT trusted FROM payees WHERE id = ?", (row["payee_id"],)).fetchone()
+            paid_before = conn.execute(
+                "SELECT COUNT(*) FROM payments WHERE payee_id = ? AND status = 'CAPTURED' AND id != ?",
+                (row["payee_id"], payment_id),
+            ).fetchone()[0]
+            history = [r["amount_cents"] for r in conn.execute(
+                "SELECT amount_cents FROM payments WHERE sender_id = ? AND status = 'CAPTURED' AND id != ?",
+                (db.SENDER_ID, payment_id))]
+        reasons = []
+        if not (payee and payee["trusted"]) and paid_before == 0:
+            reasons.append("you have not paid this person before")
+        if history and row["amount_cents"] > risk_config.UNUSUAL_MULTIPLE_OF_MEDIAN * statistics.median(history):
+            reasons.append("the amount is much larger than your usual payment")
+        if not reasons:
+            return None
+        return ("The AI check was not available, so only our safety rules looked at this payment. "
+                "Please double-check it, because " + " and ".join(reasons) + ".")
 
     # ---------------------------------------------------------------- decisions
 
@@ -1121,6 +1160,7 @@ def _serialize(row: sqlite3.Row) -> dict:
         "decision_note": row["decision_note"],
         "void_reason": row["void_reason"],
         "last_error": row["last_error"],
+        "route_note": row["route_note"],
         "is_seed": bool(row["is_seed"]),
         "category": row["category"] if "category" in row.keys() else None,
         "screenshot_url": f"/screenshots/{row['screenshot_path']}" if row["screenshot_path"] else None,
