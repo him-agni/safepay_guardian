@@ -132,6 +132,15 @@ Open **http://localhost:5173/#/send**. In judge mode the send page shows **Demo 
 
 The three scenarios are an obvious scam, a legitimate but unusual payment, and a polite "bank" text that only the AI catches. They are described step by step in [demo/README.md](demo/README.md).
 
+<details>
+<summary><b>Troubleshooting: a port is busy, or a command is not found</b></summary>
+
+- **Port 8000 or 5173 is already in use.** Start the backend on another port (for example `--port 8001`), then tell the web app where it is before `npm run dev`: PowerShell `$env:SAFEPAY_BACKEND="http://localhost:8001"`, Bash `SAFEPAY_BACKEND=http://localhost:8001 npm run dev`. The web app prints the address it chose; open that one.
+- **`python` is not found on Windows.** Try `py -3.10 -m venv .venv` (or any Python 3.10+), then use `.\.venv\Scripts\python` as shown.
+- **PowerShell blocks scripts.** Nothing here needs script execution; the commands call `python` and `npm` directly.
+- **The page says "Something went wrong".** Reload. If you edited code while the dev server was running, stop it with Ctrl+C and run `npm run dev` again.
+</details>
+
 > **Start over any time** by running the reset step again. The fake PayPal lives in memory, so if you restart the backend, reset too: a payment left open before a restart cannot be completed afterwards.
 
 > Messages other than the three demo ones are checked by the **rules alone**, and the screen says so ("AI check unavailable, rules only"). In that state a payment to a *new* payee, or for a much larger amount than usual, still asks the sender to confirm, even if the rules call it Low.

@@ -4,6 +4,17 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-11 · Judge setup · Fresh clone, README steps in PowerShell
+
+- **Run by:** Claude. A brand-new `git clone` of the committed repo into an empty folder (no `.env`, no `data/`, no `node_modules`), then the README's **Windows PowerShell** steps in a real PowerShell, on ports 8010 and 5180 because 8000 and 5173 were in use by running apps.
+- **Install:** `python -m venv .venv`, `pip install -r backendequirements.txt` and `npm install` all succeeded from nothing (62 npm packages, about 5 s).
+- **Run:** the judge-mode backend (`PAYPAL_MODE=fake`, `AI_PROVIDER=replay`) started; `reset_demo.py` seeded 3 payees and 7 past payments; the web app started. `/health` reported fake PayPal, replayed AI, `sandbox_only: true`. The home page loaded with no console errors.
+- **Inside the clone:** 206 backend tests, 75 frontend tests, `npm run build` and `oxlint` clean; the cached evaluation ran offline (16 of 16 cases).
+- **The judge flow in a browser:** the Demo mode buttons filled each scenario. Scenario 1: "This payment is on hold", High, guardian decline gave "Payment not captured, authorization voided. You declined it." Scenario 2: the Medium warning, then "Payment completed." after the sender confirmed. Scenario 3: the screenshot was read (3 messages), "This payment is on hold", High, no "rules only" banner (the stored replies matched), guardian decline as above.
+- **Found:** with the default ports busy, the web app keeps proxying to port 8000 unless `SAFEPAY_BACKEND` is set; added a troubleshooting note to the README. Not README problems: the output pipe of my test harness stayed open while the servers ran (stopped the harness, checked the servers directly).
+- **Not tested:** macOS and Linux (no such machine here). The commands differ only in `.venv/bin/python` and shell syntax.
+- **Verdict:** Pass.
+
 ## 2026-11-11 · Sandbox + demo · After the second-review fixes
 
 - **Run by:** Claude, on spare ports (8004, 8005) with their own databases, real PayPal sandbox and live Gemini for the smoke test, stored AI replies for the rehearsal.
