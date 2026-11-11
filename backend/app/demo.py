@@ -59,6 +59,25 @@ def void_open_authorizations(db_path: Path, gateway: PaymentGateway) -> dict:
     return {"voided": voided, "failed": failed}
 
 
+class ResetBlocked(Exception):
+    """Some open sandbox authorizations could not be voided, so the records of them were kept."""
+
+    def __init__(self, failures: list[str]) -> None:
+        super().__init__("; ".join(failures))
+        self.failures = failures
+
+
+def reset_safely(db_path: Path, gateway: PaymentGateway | None, *, force: bool = False) -> dict:
+    """Void open authorizations, then reset. If a void fails, stop before deleting: the payment records are the
+    only way to find those authorizations again. `force` deletes anyway (for a database of unusable records)."""
+    result = {"voided": [], "failed": []}
+    if gateway is not None:
+        result = void_open_authorizations(db_path, gateway)
+        if result["failed"] and not force:
+            raise ResetBlocked(result["failed"])
+    return {**reset(db_path), **result}
+
+
 def reset(db_path: Path) -> dict:
     """Clear every payment, payee, assessment, event and message, then seed the demo history."""
     db.migrate(db_path)

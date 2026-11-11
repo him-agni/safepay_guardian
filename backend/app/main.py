@@ -31,6 +31,11 @@ log = logging.getLogger("safepay")
 MAX_BODY_BYTES = 8_000_000
 
 
+def _too_large() -> JSONResponse:
+    return JSONResponse(status_code=413, content={
+        "error": "too_large", "message": "That request is too large. Screenshots must be under 4 MB."})
+
+
 class BodySizeLimit:
     """Refuse oversized request bodies before they are read into memory (pure ASGI, so streaming works)."""
 
@@ -43,21 +48,34 @@ class BodySizeLimit:
             return await self.app(scope, receive, send)
         length = dict(scope.get("headers") or []).get(b"content-length")
         if length is not None and (not length.isdigit() or int(length) > self.max_bytes):
-            response = JSONResponse(status_code=413, content={
-                "error": "too_large", "message": "That request is too large. Screenshots must be under 4 MB."})
-            return await response(scope, receive, send)
+            return await _too_large()(scope, receive, send)
         seen = 0
+        tripped = False  # a body sent without a Content-Length turned out to be over the limit
+        answered = False
 
         async def limited_receive():
-            nonlocal seen
+            nonlocal seen, tripped
+            if tripped:
+                return {"type": "http.request", "body": b"", "more_body": False}
             message = await receive()
             if message["type"] == "http.request":
                 seen += len(message.get("body", b""))
-                if seen > self.max_bytes:  # a body sent without Content-Length
-                    raise ValueError("request body too large")
+                if seen > self.max_bytes:
+                    # Stop reading and give the app an empty body. The framework would turn an error raised here
+                    # into a 400, so the 413 is sent in place of whatever the app answers.
+                    tripped = True
+                    return {"type": "http.request", "body": b"", "more_body": False}
             return message
 
-        return await self.app(scope, limited_receive, send)
+        async def guarded_send(message):
+            nonlocal answered
+            if not tripped:
+                return await send(message)
+            if not answered:
+                answered = True
+                await _too_large()(scope, receive, send)
+
+        return await self.app(scope, limited_receive, guarded_send)
 
 
 def create_app(
@@ -123,7 +141,7 @@ def create_app(
             health_cache["at"] = time.monotonic()
         return {
             "status": "ok",
-            "sandbox_only": True,
+            "sandbox_only": settings.sandbox_only,
             "paypal": {
                 "mode": settings.paypal_mode,
                 "configured": settings.paypal_configured,

@@ -4,11 +4,13 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
-from pydantic import SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SANDBOX_HOSTS = {"api-m.sandbox.paypal.com", "api.sandbox.paypal.com"}
 
 
 class Settings(BaseSettings):
@@ -34,34 +36,34 @@ class Settings(BaseSettings):
     ai_provider: Literal["gemini", "replay", "none"] = "none"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.1-flash-lite"
-    ai_timeout_seconds: float = 12.0
+    ai_timeout_seconds: float = Field(12.0, gt=0)
     ai_cache_dir: str = ""  # e.g. "eval/cache": reuse stored AI replies for identical prompts
 
     # Holds and background work
-    hold_timeout_seconds: int = 86400
-    sweeper_interval_seconds: float = 5.0  # 0 disables the background sweeper (tests)
-    void_retry_seconds: float = 30.0  # wait before the sweeper retries a failed void
-    stuck_after_seconds: float = 180.0  # in-flight payments older than this are resumed
-    inflight_wait_seconds: float = 15.0  # a repeated decision waits this long for the first one
-    capture_recheck_seconds: float = 20.0  # wait before the sweeper re-reads a pending capture
+    hold_timeout_seconds: int = Field(86400, ge=1)
+    sweeper_interval_seconds: float = Field(5.0, ge=0)  # 0 disables the background sweeper (tests)
+    void_retry_seconds: float = Field(30.0, ge=0)  # wait before the sweeper retries a failed void
+    stuck_after_seconds: float = Field(180.0, gt=0)  # in-flight payments older than this are resumed
+    inflight_wait_seconds: float = Field(15.0, ge=0)  # a repeated decision waits this long for the first one
+    capture_recheck_seconds: float = Field(20.0, ge=0)  # wait before the sweeper re-reads a pending capture
     # When the AI check did not run, a payment that rules alone call Low still asks the sender to confirm if the
     # payee is new or the amount is much larger than usual. Rules alone caught about half the held-out scams.
     confirm_when_ai_unavailable: bool = True
-    auth_retry_seconds: float = 15.0  # wait before retrying an authorization PayPal never answered
-    auth_give_up_seconds: float = 300.0  # then stop trying and report that the payment could not be started
-    paypal_retry_backoff_seconds: float = 0.5
+    auth_retry_seconds: float = Field(15.0, gt=0)  # wait before retrying an authorization PayPal never answered
+    auth_give_up_seconds: float = Field(300.0, gt=0)  # then stop trying and report that the payment could not be started
+    paypal_retry_backoff_seconds: float = Field(0.5, ge=0)
 
     # App
     database_path: str = "data/safepay.db"
     upload_dir: str = "data/uploads"  # screenshots the sender adds (git-ignored)
-    max_screenshot_bytes: int = 4_000_000
+    max_screenshot_bytes: int = Field(4_000_000, gt=0)
     cors_origins: str = "http://localhost:5173"
 
     # Requests per minute per visitor (IP address); 0 turns a limit off. Generous for people, not for scripts.
-    rate_limit_payments: int = 20  # POST /payments
-    rate_limit_screenshots: int = 10  # POST /screenshots (uploads plus an AI call each)
-    rate_limit_ai_checks: int = 20  # POST /assess and POST /activity/ask
-    rate_limit_messages: int = 30  # POST /payments/{id}/messages
+    rate_limit_payments: int = Field(20, ge=0)  # POST /payments
+    rate_limit_screenshots: int = Field(10, ge=0)  # POST /screenshots (uploads plus an AI call each)
+    rate_limit_ai_checks: int = Field(20, ge=0)  # POST /assess and POST /activity/ask
+    rate_limit_messages: int = Field(30, ge=0)  # POST /payments/{id}/messages
 
     @field_validator("sandbox_card_expiry")
     @classmethod
@@ -80,6 +82,26 @@ class Settings(BaseSettings):
         if not 1 <= int(month) <= 12:
             raise ValueError("SANDBOX_CARD_EXPIRY month must be 01 to 12")
         return f"{year}-{int(month):02d}"
+
+    @model_validator(mode="after")
+    def _sandbox_only(self) -> "Settings":
+        """This app moves test money only: in sandbox mode the PayPal address must be a PayPal sandbox host."""
+        if self.paypal_mode == "sandbox" and not self.sandbox_host_ok:
+            raise ValueError(
+                "PAYPAL_BASE_URL must be the PayPal sandbox (https://api-m.sandbox.paypal.com). "
+                "This app only moves test money, so it refuses to talk to any other PayPal address."
+            )
+        return self
+
+    @property
+    def sandbox_host_ok(self) -> bool:
+        url = urlparse(self.paypal_base_url)
+        return url.scheme == "https" and url.hostname in SANDBOX_HOSTS and not url.username
+
+    @property
+    def sandbox_only(self) -> bool:
+        """True when no real money can move: the fake PayPal, or a checked PayPal sandbox address."""
+        return self.paypal_mode == "fake" or self.sandbox_host_ok
 
     @property
     def paypal_configured(self) -> bool:
