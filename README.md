@@ -1,11 +1,11 @@
 # SafePay Guardian
 
-**A second look before money leaves.** SafePay Guardian checks a payment and the message that asked for it. If it looks like a scam, the payment waits on hold until someone you trust has looked. No money moves until a person decides.
+**A second look before money leaves.** SafePay Guardian checks a payment and the message that asked for it. Everyday payments go straight through. If one looks like a scam, it waits on hold, with the money only reserved, until someone you trust has looked.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![PayPal sandbox only](https://img.shields.io/badge/PayPal-sandbox%20only-orange)
-![Backend tests](https://img.shields.io/badge/backend%20tests-199%20passing-brightgreen)
-![Frontend tests](https://img.shields.io/badge/frontend%20tests-63%20passing-brightgreen)
+![Backend tests](https://img.shields.io/badge/backend%20tests-206%20passing-brightgreen)
+![Frontend tests](https://img.shields.io/badge/frontend%20tests-75%20passing-brightgreen)
 
 > **Sandbox only: all money is PayPal sandbox test money.** Built for the PayPal AI Hackathon.
 
@@ -29,7 +29,7 @@ SafePay Guardian puts a calm pause and a trusted second opinion between the send
 | **Medium** | The sender sees the reasons and the exact words that worried us, then confirms or cancels. | The sender |
 | **High** | **On hold.** The authorization stays open, the guardian is asked, and they chat with the sender in the app. | The guardian: approve (capture) or decline (void) |
 
-If nobody answers before the hold runs out, the payment is **cancelled, never sent**.
+If nobody answers before the hold runs out, the payment is **cancelled, never sent**. (If the AI check did not run, a Low payment to a new payee, or for a much larger amount than usual, still asks the sender to confirm.)
 
 It is built for two people:
 
@@ -40,7 +40,7 @@ It is built for two people:
 
 | Layer | What we look at |
 |---|---|
-| **Communication** | The pasted message or a screenshot of the conversation, read by safety rules and by Gemini. Every reason must quote the message word for word. |
+| **Communication** | The pasted message or a screenshot of the conversation, read by safety rules and by Gemini. An AI reason is kept only if it quotes the message word for word. |
 | **Transaction** | A new payee, an amount far above the sender's usual, a payee with no explanation. |
 | **Payment** | PayPal authorization first. Capture only after a human or a Low result. Void on decline, cancel or silence. |
 
@@ -91,7 +91,7 @@ Light and dark mode on every screen (it follows the device, with a toggle). The 
 
 ## Try it in two minutes (no keys needed)
 
-Judge mode uses a **fake PayPal** and **stored AI replies** for the three demo messages, so it needs no credentials and no internet. You need Python 3.10+ and Node 20+.
+Judge mode uses a **fake PayPal** and **stored AI replies** for the three demo messages, so it needs no credentials. You need **Python 3.10+** and **Node 22 or 24** (the build tools need Node 20.19+ or 22.12+; it is tested on Node 24). The internet is needed only to install the dependencies; after that it runs offline.
 
 **Windows (PowerShell)**
 
@@ -126,7 +126,13 @@ PAYPAL_MODE=fake DATABASE_PATH=data/judge.db .venv/bin/python scripts/reset_demo
 cd frontend && npm install && npm run dev
 ```
 
-Open **http://localhost:5173**, then follow the three scenarios in [demo/README.md](demo/README.md) (an obvious scam, a legitimate but unusual payment, and a polite "bank" text that only the AI catches). Use *I am the sender* and *I am the guardian* in the header to change sides.
+Open **http://localhost:5173/#/send**. In judge mode the send page shows **Demo mode** buttons: click a scenario, press *Send for check*, then switch to *I am the guardian* in the header to decide. Play them **in order, 1, 2, 3**, right after the reset step.
+
+<img src="docs/images/demo-scenarios.png" width="520" alt="The send page in demo mode with three one-click scenarios">
+
+The three scenarios are an obvious scam, a legitimate but unusual payment, and a polite "bank" text that only the AI catches. They are described step by step in [demo/README.md](demo/README.md).
+
+> **Start over any time** by running the reset step again. The fake PayPal lives in memory, so if you restart the backend, reset too: a payment left open before a restart cannot be completed afterwards.
 
 > Messages other than the three demo ones are checked by the **rules alone**, and the screen says so ("AI check unavailable, rules only"). In that state a payment to a *new* payee, or for a much larger amount than usual, still asks the sender to confirm, even if the rules call it Low.
 
@@ -352,8 +358,8 @@ Full tables and every case: [eval/results.md](eval/results.md) and [eval/results
 
 | What | Command | Result |
 |---|---|---|
-| Backend: state machine, PayPal client, risk engine, hardening | `cd backend && ../.venv/Scripts/python -m pytest -q` | **199 passing**, offline |
-| Frontend: unit tests | `cd frontend && npm test` | **63 passing** |
+| Backend: state machine, PayPal client, risk engine, hardening | `cd backend && ../.venv/Scripts/python -m pytest -q` | **206 passing**, offline |
+| Frontend: unit tests | `cd frontend && npm test` | **75 passing** |
 | Frontend: type-check and production build | `npm run build` | clean |
 | Frontend: lint | `npx oxlint src` | clean |
 | Real PayPal sandbox, every lane | `scripts/api_smoke.py` | every lane passed; each authorization read back from PayPal (CAPTURED or VOIDED as expected) |
@@ -378,7 +384,7 @@ The safety tests run against an in-process fake PayPal with fault injection (los
 ```text
 backend/app/   state.py (state machine)  paypal.py (real + fake PayPal)  risk/ (rules, AI, grounding, patterns)
                main.py (API)  db.py  ratelimit.py  activity_query.py  demo.py
-backend/tests/ 199 tests          frontend/src/  sender/  guardian/  home/  (React screens)
+backend/tests/ 206 tests          frontend/src/  sender/  guardian/  home/  (React screens)
 eval/          cases, held-out cases, runner, results, stored AI replies
 demo/          scenarios.json, runbook, stored AI replies, the made-up screenshot
 scripts/       sandbox_gate  api_smoke  demo_rehearsal  reset_demo

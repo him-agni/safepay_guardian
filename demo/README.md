@@ -39,6 +39,8 @@ DATABASE_PATH=data/demo.db .venv/Scripts/python scripts/demo_rehearsal.py
 
 After a rehearsal, reset again before recording.
 
+**One-click scenarios.** The send page can fill the form with each scenario's exact text, which the stored AI replies need (typing it by hand almost always misses them, and the screen then says "rules only"). The buttons appear when the backend replays stored answers (judge mode) or when the address has `?demo`, which is how to get them in demo mode: open http://localhost:5173/?demo#/send. Scenario 3 also attaches its screenshot. Play 1, 2, 3 in order after a reset.
+
 ## 2. Set up the screen
 
 - Two browser windows side by side: left **Sender** at http://localhost:5173/#/send, right **Guardian** at http://localhost:5173/#/guardian.

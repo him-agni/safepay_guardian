@@ -50,7 +50,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: 'Can a scammer trick the AI?',
-    a: 'The message is treated as untrusted, and the AI can only add caution. Every reason must quote the message.',
+    a: 'The message is treated as untrusted, and the AI can only add caution. An AI reason is thrown away unless it quotes the message.',
   },
   {
     q: 'What if the AI is unavailable?',
@@ -272,7 +272,7 @@ function CountStat({ to }: { to: number }) {
 const TRUST = [
   { icon: <LockIcon />, title: 'Nothing is sent early', text: 'Money is reserved until someone says go.' },
   { icon: <ClockIcon />, title: 'Silence is safe', text: 'No answer cancels the payment.' },
-  { icon: <QuoteIcon />, title: 'Every reason is quoted', text: 'Each reason quotes the message word for word.' },
+  { icon: <QuoteIcon />, title: 'AI reasons are quoted', text: 'An AI reason is kept only if it quotes the message word for word.' },
   { icon: <ShieldUpIcon />, title: 'AI can only add caution', text: 'It can raise a risk level, never lower it.' },
   { icon: <ListIcon />, title: 'Everything is on record', text: 'Every decision is in an audit log.' },
 ]
