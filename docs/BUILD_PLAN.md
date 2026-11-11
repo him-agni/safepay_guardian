@@ -102,15 +102,16 @@ The risk engine and the 16-case evaluation stay frozen throughout.
 
 ### Payment state machine
 
-Statuses: CREATED, AUTH_FAILED, AUTHORIZED, WARNED, HELD, CAPTURING, VOIDING, CAPTURED, VOIDED, EXPIRED, CAPTURE_FAILED, VOID_FAILED. `void_reason` is `sender_cancel`, `guardian_decline` or `timeout`.
+Statuses: CREATED, AUTH_FAILED, AUTHORIZED, WARNED, HELD, CAPTURING, VOIDING, CAPTURED, CAPTURE_PENDING, VOIDED, EXPIRED, CAPTURE_FAILED, VOID_FAILED. `void_reason` is `sender_cancel`, `guardian_decline` or `timeout`.
 
 | From | To |
 |---|---|
-| CREATED | AUTHORIZED, AUTH_FAILED |
-| AUTHORIZED | CAPTURING (low), WARNED (medium), HELD (high) |
+| CREATED | AUTHORIZED; AUTH_FAILED (PayPal refused, or no answer for 5 minutes); stays CREATED while PayPal has not answered |
+| AUTHORIZED | CAPTURING (low), WARNED (medium, or low when the AI did not run and the payee is new or the amount unusual), HELD (high) |
 | WARNED | CAPTURING (sender confirm); VOIDING (sender cancel, timeout) |
 | HELD | CAPTURING (guardian approve); VOIDING (guardian decline, sender cancel, timeout) |
-| CAPTURING | CAPTURED; CAPTURE_FAILED; VOIDED or EXPIRED if PayPal already shows it voided or expired |
+| CAPTURING | CAPTURED (capture settled); CAPTURE_PENDING (PayPal says pending or unknown); CAPTURE_FAILED (declined, failed or error); VOIDED or EXPIRED if PayPal already shows it voided or expired |
+| CAPTURE_PENDING | CAPTURED or CAPTURE_FAILED when PayPal settles it (the sweeper re-reads it); no decision can change it |
 | VOIDING | VOIDED, EXPIRED (timeout reason), VOID_FAILED |
 | CAPTURE_FAILED | CAPTURING (retry); VOIDING (decline, timeout) |
 | VOID_FAILED | VOIDING (automatic retry by the sweeper) |
@@ -118,9 +119,12 @@ Statuses: CREATED, AUTH_FAILED, AUTHORIZED, WARNED, HELD, CAPTURING, VOIDING, CA
 Final statuses: CAPTURED, VOIDED, EXPIRED, AUTH_FAILED.
 
 - Claim before calling PayPal: one write transaction moves the payment to CAPTURING or VOIDING; only the caller that made the change talks to PayPal. A repeat in the same direction returns the first result; the opposite direction gets a 409 with a plain reason.
-- The authorization is read from PayPal before every capture and void.
+- The authorization is read from PayPal before every capture and void. If it shows CAPTURED and we know the capture id, the capture's own status decides.
+- A capture decision (confirm, approve, retry) is refused after `hold_expires_at`, checked inside the claiming transaction; the payment is voided as a timeout instead.
+- No answer from PayPal on authorization is not a failure: the payment stays CREATED and the sweeper retries with the same create request id (every 15 s, up to 300 s).
+- `POST /payments` takes an `Idempotency-Key`: same key and details returns the first payment; same key with other details is a 409.
 - PayPal-Request-Id: `{payment_id}-{action}-{attempt}`. Network and 5xx retries reuse it; a definite 4xx moves to the next attempt.
-- Sweeper every 5 s and at startup: voids expired WARNED, HELD and CAPTURE_FAILED; retries VOID_FAILED; resumes stuck payments.
+- Sweeper every 5 s and at startup: voids expired WARNED, HELD and CAPTURE_FAILED; retries VOID_FAILED; re-reads CAPTURE_PENDING; retries unanswered authorizations; resumes stuck payments.
 - The audit log never stores request bodies (card number) or tokens; it stores PayPal debug ids.
 - One uvicorn worker.
 

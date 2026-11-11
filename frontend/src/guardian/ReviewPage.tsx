@@ -305,7 +305,7 @@ function Evidence({ p }: { p: Payment }) {
 function AuditLog({ events }: { events: PaymentEvent[] }) {
   return (
     <details className="card audit">
-      <summary>Audit log ({events.length} steps, including every PayPal call)</summary>
+      <summary>Audit log ({events.length} steps, including the main PayPal steps)</summary>
       <ol>
         {events.map((e, i) => (
           <li key={i}>

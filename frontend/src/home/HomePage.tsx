@@ -33,7 +33,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   { q: 'Is this real money?', a: 'No. It runs on the PayPal sandbox, with test money only.' },
   {
     q: 'Where is my money while a payment is on hold?',
-    a: 'Reserved, not sent. If it is declined, cancelled or unanswered, it is released and nothing is taken.',
+    a: 'Reserved, not sent. If it is declined, cancelled or unanswered, it is released and nothing is taken. Your bank may take a few days to show the reservation as gone.',
   },
   {
     q: 'What if my guardian does not answer?',
@@ -46,7 +46,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: 'What does the AI see?',
-    a: 'The amount, payee, note, message and past payments. Never card details. It cannot move money.',
+    a: 'The amount, payee, note, message and past payments. A screenshot is sent to Google Gemini to be read. Never card details. It cannot move money.',
   },
   {
     q: 'Can a scammer trick the AI?',
@@ -280,7 +280,7 @@ const TRUST = [
 function WhyTrust() {
   return (
     <Section id="why-trust" eyebrow="Why trust it" title="Built to fail safe" center
-      intro="A mistake means a short wait, never lost money.">
+      intro="Built so a doubtful payment waits instead of going.">
       <div className="trust stagger">
         <div className="trust-card">
           <span className="icon-badge" aria-hidden="true">
