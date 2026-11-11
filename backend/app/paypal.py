@@ -99,12 +99,20 @@ class PaymentGateway(Protocol):
 
     def capture(self, authorization_id: str, *, request_id: str) -> CaptureResult: ...
 
+    def get_capture(self, capture_id: str) -> CaptureResult: ...
+
     def void(self, authorization_id: str, *, request_id: str) -> str | None: ...
 
     def check(self) -> bool: ...
 
 
 USABLE_AUTH_STATUSES = {"CREATED", "PENDING"}
+
+# PayPal capture statuses (https://developer.paypal.com/api/payments/v2/definitions/capture_status/).
+# Only a settled capture counts as a completed payment. PENDING is still settling; DECLINED and FAILED did not
+# take the money. Anything else (a status we do not know) is treated as not confirmed yet.
+CAPTURE_DONE = frozenset({"COMPLETED", "PARTIALLY_REFUNDED", "REFUNDED"})
+CAPTURE_REJECTED = frozenset({"DECLINED", "FAILED"})
 
 
 # --------------------------------------------------------------------------------------
@@ -257,6 +265,11 @@ class PayPalClient:
         body = resp.json()
         return CaptureResult(body["id"], body.get("status", ""), resp.headers.get("paypal-debug-id"))
 
+    def get_capture(self, capture_id: str) -> CaptureResult:
+        resp = self._request("GET", f"/v2/payments/captures/{capture_id}", what="read capture")
+        body = resp.json()
+        return CaptureResult(body.get("id", capture_id), body.get("status", ""), resp.headers.get("paypal-debug-id"))
+
     def void(self, authorization_id: str, *, request_id: str) -> str | None:
         resp = self._request(
             "POST", f"/v2/payments/authorizations/{authorization_id}/void", what="void", request_id=request_id
@@ -297,6 +310,8 @@ class FakePayPal:
     capture_delay: float = 0.0
     authorizations: dict = field(default_factory=dict)  # authorization id -> status
     captures: list = field(default_factory=list)  # (authorization id, capture id)
+    capture_statuses: dict = field(default_factory=dict)  # capture id -> status
+    capture_results: list = field(default_factory=list)  # statuses the next captures return (default COMPLETED)
     voids: list = field(default_factory=list)  # authorization ids
     calls: list = field(default_factory=list)  # (operation, request id or authorization id)
     _faults: dict = field(default_factory=dict)
@@ -310,6 +325,15 @@ class FakePayPal:
     def set_status(self, authorization_id: str, status: str) -> None:
         with self._lock:
             self.authorizations[authorization_id] = status
+
+    def next_capture_status(self, status: str) -> None:
+        """The next capture comes back with this status (for example PENDING or DECLINED)."""
+        with self._lock:
+            self.capture_results.append(status)
+
+    def set_capture_status(self, capture_id: str, status: str) -> None:
+        with self._lock:
+            self.capture_statuses[capture_id] = status
 
     def _next_fault(self, op: str) -> Fault | None:
         with self._lock:
@@ -372,15 +396,27 @@ class FakePayPal:
         def go() -> CaptureResult:
             status = self.authorizations.get(authorization_id)
             if status in USABLE_AUTH_STATUSES:
-                self.authorizations[authorization_id] = "CAPTURED"
                 capture_id = "FAKECAP" + uuid.uuid4().hex[:10].upper()
-                self.captures.append((authorization_id, capture_id))
-                return CaptureResult(capture_id, "COMPLETED", "fake-debug")
+                result = self.capture_results.pop(0) if self.capture_results else "COMPLETED"
+                self.capture_statuses[capture_id] = result
+                if result not in CAPTURE_REJECTED:  # a refused capture leaves the authorization usable
+                    self.authorizations[authorization_id] = "CAPTURED"
+                    self.captures.append((authorization_id, capture_id))
+                return CaptureResult(capture_id, result, "fake-debug")
             issue = {"CAPTURED": "AUTHORIZATION_ALREADY_CAPTURED", "VOIDED": "AUTHORIZATION_VOIDED",
                      "EXPIRED": "AUTHORIZATION_EXPIRED"}.get(status or "", "RESOURCE_NOT_FOUND")
             raise GatewayError("client", f"capture failed: HTTP 422 {issue}", status_code=422, issue=issue)
 
         return self._run("capture", request_id, go)  # type: ignore[return-value]
+
+    def get_capture(self, capture_id: str) -> CaptureResult:
+        def go() -> CaptureResult:
+            if capture_id not in self.capture_statuses:
+                raise GatewayError("client", "read capture failed: HTTP 404", status_code=404,
+                                   issue="RESOURCE_NOT_FOUND")
+            return CaptureResult(capture_id, self.capture_statuses[capture_id], "fake-debug")
+
+        return self._run("get_capture", None, go)  # type: ignore[return-value]
 
     def void(self, authorization_id: str, *, request_id: str) -> str | None:
         def go() -> str:

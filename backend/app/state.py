@@ -8,6 +8,8 @@ Rules this module enforces:
   * PayPal-Request-Ids are deterministic ({payment_id}-capture-{attempt}). Network and 5xx retries
     reuse the id; only a definite 4xx rejection moves to the next attempt number.
   * Silence fails safe: WARNED, HELD and CAPTURE_FAILED payments are voided when the hold expires.
+  * A payment is CAPTURED only when PayPal says the capture is settled (COMPLETED). A PENDING capture is
+    CAPTURE_PENDING and is re-read until it settles; DECLINED or FAILED goes to CAPTURE_FAILED.
   * Every state change and every PayPal call writes a row to `events` (the audit log).
 """
 
@@ -31,7 +33,8 @@ from typing import Callable, Iterator, TypeVar
 
 from . import db
 from .config import Settings
-from .paypal import USABLE_AUTH_STATUSES, GatewayError, PaymentGateway, format_amount, request_id
+from .paypal import (CAPTURE_DONE, CAPTURE_REJECTED, USABLE_AUTH_STATUSES, GatewayError, PaymentGateway,
+                     format_amount, request_id)
 from .risk import ai as ai_mod
 from .risk.types import Assessor, PaymentContext, RiskResult
 
@@ -50,13 +53,14 @@ class Status(str, Enum):
     VOIDED = "VOIDED"
     EXPIRED = "EXPIRED"
     CAPTURE_FAILED = "CAPTURE_FAILED"
+    CAPTURE_PENDING = "CAPTURE_PENDING"
     VOID_FAILED = "VOID_FAILED"
 
 
 S = Status
 TERMINAL = frozenset({S.CAPTURED, S.VOIDED, S.EXPIRED, S.AUTH_FAILED})
 TIMEOUT_VOIDABLE = frozenset({S.WARNED, S.HELD, S.CAPTURE_FAILED})
-GUARDIAN_QUEUE = (S.HELD, S.CAPTURE_FAILED, S.VOID_FAILED, S.CAPTURING, S.VOIDING)
+GUARDIAN_QUEUE = (S.HELD, S.CAPTURE_FAILED, S.CAPTURE_PENDING, S.VOID_FAILED, S.CAPTURING, S.VOIDING)
 
 
 class PaymentError(Exception):
@@ -153,6 +157,7 @@ def status_text(status: str, void_reason: str | None) -> dict:
         S.VOIDING: "Stopping this payment. It will not be sent.",
         S.VOID_FAILED: "This payment is stopped and will not be sent.",
         S.CAPTURE_FAILED: "Your guardian approved this payment, but it has not gone through yet.",
+        S.CAPTURE_PENDING: "Your payment was sent and PayPal is still confirming it. This page will update.",
         S.AUTH_FAILED: "The payment could not be started. No payment was taken.",
         S.EXPIRED: "Not sent. Nobody reviewed it in time, so it was declined. No payment was taken.",
         S.VOIDED: {
@@ -170,6 +175,7 @@ def status_text(status: str, void_reason: str | None) -> dict:
         S.VOIDING: "Voiding the authorization.",
         S.VOID_FAILED: "The void failed and will be retried. The payment will not be captured.",
         S.CAPTURE_FAILED: "Capture failed. You can retry or decline.",
+        S.CAPTURE_PENDING: "Capture requested. PayPal still shows it as pending, so it is not final yet.",
         S.AUTH_FAILED: "Card authorization failed. Nothing to capture or void.",
         S.EXPIRED: "No decision before the hold timed out. Payment not captured, authorization voided.",
         S.VOIDED: "Payment not captured, authorization voided."
@@ -197,6 +203,7 @@ def _conflict_reason(row: sqlite3.Row) -> str:
         S.VOIDING: "it is being voided right now",
         S.VOID_FAILED: "it is being voided (the last void attempt failed and will be retried)",
         S.CAPTURE_FAILED: "the guardian approved it and the capture can only be retried or declined",
+        S.CAPTURE_PENDING: "PayPal is still confirming the capture, so it can no longer be changed",
         S.CREATED: "it is still being authorized",
         S.AUTHORIZED: "it is still being routed",
     }[status]
@@ -448,7 +455,7 @@ class PaymentService:
     def _unclaimed(self, payment_id: str, action: Action, actor: str, row: sqlite3.Row) -> dict:
         """Someone else already changed the payment. Same direction: return that result. Otherwise: 409."""
         in_flight = S.CAPTURING if action.kind == "capture" else S.VOIDING
-        done = {S.CAPTURED} if action.kind == "capture" else {S.VOIDED, S.EXPIRED, S.VOID_FAILED}
+        done = {S.CAPTURED, S.CAPTURE_PENDING} if action.kind == "capture" else {S.VOIDED, S.EXPIRED, S.VOID_FAILED}
         status = S(row["status"])
         waited = False
         if status == in_flight:
@@ -514,6 +521,18 @@ class PaymentService:
                              {"last_error": f"Could not check the authorization: {exc.message}"},
                              ("paypal.capture_failed", {**exc.as_detail(), "stage": "read"}))
             return
+        if paypal_status == "CAPTURED" and row["paypal_capture_id"]:
+            # PayPal shows a capture and we know which one: its own status decides, not the authorization's
+            try:
+                info = self._with_retry(lambda: self.gateway.get_capture(row["paypal_capture_id"]))
+            except GatewayError as exc:
+                self._transition(payment_id, {S.CAPTURING}, S.CAPTURE_FAILED, "system",
+                                 {"last_error": f"Could not check the capture: {exc.message}"},
+                                 ("paypal.capture_failed", {**exc.as_detail(), "stage": "read_capture"}))
+                return
+            self._apply_capture_status(payment_id, S.CAPTURING, row["paypal_capture_id"], info.status, attempt,
+                                       {"paypal_debug_id": info.debug_id, "reconciled": True})
+            return
         if paypal_status not in USABLE_AUTH_STATUSES:
             if not self._settle_from_paypal(payment_id, S.CAPTURING, paypal_status, "capture"):
                 self._transition(payment_id, {S.CAPTURING}, S.CAPTURE_FAILED, "system",
@@ -536,10 +555,52 @@ class PaymentService:
                              ("paypal.capture_failed", {**exc.as_detail(), "request_id": rid,
                                                          "retry_reuses_request_id": exc.retry_same_id}))
             return
-        self._transition(payment_id, {S.CAPTURING}, S.CAPTURED, "system",
-                         {"paypal_capture_id": capture.capture_id, "last_error": None},
-                         ("paypal.captured", {"capture_id": capture.capture_id, "capture_status": capture.status,
-                                              "request_id": rid, "paypal_debug_id": capture.debug_id}))
+        self._apply_capture_status(payment_id, S.CAPTURING, capture.capture_id, capture.status, attempt,
+                                   {"request_id": rid, "paypal_debug_id": capture.debug_id})
+
+    def _apply_capture_status(self, payment_id: str, from_status: Status, capture_id: str, capture_status: str,
+                              attempt: int, detail: dict) -> None:
+        """Record what PayPal says about a capture. Only a settled capture is a completed payment."""
+        status = (capture_status or "").upper()
+        detail = {"capture_id": capture_id, "capture_status": status or "MISSING", **detail}
+        if status in CAPTURE_DONE:
+            self._transition(payment_id, {from_status}, S.CAPTURED, "system",
+                             {"paypal_capture_id": capture_id, "last_error": None}, ("paypal.captured", detail))
+        elif status in CAPTURE_REJECTED:
+            # a definite refusal: a retry is a new capture and needs a new request id
+            self._transition(payment_id, {from_status}, S.CAPTURE_FAILED, "system",
+                             {"paypal_capture_id": capture_id, "capture_attempt": attempt + 1,
+                              "last_error": f"PayPal reported the capture as {status.lower()}."},
+                             ("paypal.capture_failed", {**detail, "stage": "settle"}))
+        else:  # PENDING, or a status we do not know: not confirmed, so we keep asking
+            self._transition(payment_id, {from_status}, S.CAPTURE_PENDING, "system",
+                             {"paypal_capture_id": capture_id, "last_error": None},
+                             ("paypal.capture_pending", detail))
+
+    def _reconcile_capture(self, payment_id: str) -> None:
+        """Re-read a pending capture from PayPal and settle it. A failed read just tries again later."""
+        with self._conn() as conn:
+            row = self._row(conn, payment_id)
+        capture_id, attempt = row["paypal_capture_id"], row["capture_attempt"]
+        try:
+            info = self._with_retry(lambda: self.gateway.get_capture(capture_id))
+        except GatewayError as exc:
+            self._touch(payment_id, S.CAPTURE_PENDING)
+            self._event(payment_id, "system", "paypal.capture_check_failed", exc.as_detail())
+            return
+        if (info.status or "").upper() in CAPTURE_DONE | CAPTURE_REJECTED:
+            self._apply_capture_status(payment_id, S.CAPTURE_PENDING, capture_id, info.status, attempt,
+                                       {"paypal_debug_id": info.debug_id, "reconciled": True})
+        else:
+            self._touch(payment_id, S.CAPTURE_PENDING)
+            self._event(payment_id, "system", "paypal.capture_still_pending",
+                        {"capture_id": capture_id, "capture_status": info.status or "MISSING"})
+
+    def _touch(self, payment_id: str, expected: Status) -> None:
+        """Mark the payment as just checked, so the sweeper waits before reading it again."""
+        with self._conn() as conn, db.transaction(conn):
+            conn.execute("UPDATE payments SET updated_at = ? WHERE id = ? AND status = ?",
+                         (db.iso(db.utcnow()), payment_id, expected.value))
 
     def _run_void(self, payment_id: str) -> None:
         with self._conn() as conn:
@@ -600,6 +661,10 @@ class PaymentService:
                     "SELECT id FROM payments WHERE status = 'VOID_FAILED' AND updated_at <= ?",
                     (db.iso(now - timedelta(seconds=self.settings.void_retry_seconds)),),
                 )]
+                pending = [r["id"] for r in conn.execute(
+                    "SELECT id FROM payments WHERE status = 'CAPTURE_PENDING' AND updated_at <= ?",
+                    (db.iso(now - timedelta(seconds=self.settings.capture_recheck_seconds)),),
+                )]
                 stuck = [(r["id"], r["status"]) for r in conn.execute(
                     "SELECT id, status FROM payments WHERE status IN ('CAPTURING', 'VOIDING', 'CREATED', "
                     "'AUTHORIZED') AND updated_at <= ?",
@@ -615,9 +680,12 @@ class PaymentService:
                     self._decide(pid, ACTIONS["retry_void"], actor="system")
                 except Conflict:
                     pass
+            for pid in pending:
+                self._reconcile_capture(pid)
             for pid, status in stuck:
                 self._resume(pid, S(status))
-            return {"expired": len(expired), "void_retried": len(void_failed), "resumed": len(stuck)}
+            return {"expired": len(expired), "void_retried": len(void_failed), "resumed": len(stuck),
+                    "capture_checked": len(pending)}
         finally:
             self._sweep_lock.release()
 

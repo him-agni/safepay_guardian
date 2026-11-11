@@ -175,6 +175,12 @@ function Decision({ p, onUpdate }: { p: Payment; onUpdate: (p: Payment) => void 
           The capture failed: {p.last_error}. You can retry, or decline to void the authorization.
         </div>
       )}
+      {p.status === 'CAPTURE_PENDING' && (
+        <div className="banner banner-info">
+          The capture was sent and PayPal still shows it as pending. It is checked again every few seconds and
+          cannot be changed now.
+        </div>
+      )}
       {p.status === 'VOID_FAILED' && (
         <div className="banner banner-error" role="alert">
           The void failed: {p.last_error}. It is retried automatically; the payment will not be captured.

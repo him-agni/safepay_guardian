@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     void_retry_seconds: float = 30.0  # wait before the sweeper retries a failed void
     stuck_after_seconds: float = 180.0  # in-flight payments older than this are resumed
     inflight_wait_seconds: float = 15.0  # a repeated decision waits this long for the first one
+    capture_recheck_seconds: float = 20.0  # wait before the sweeper re-reads a pending capture
     paypal_retry_backoff_seconds: float = 0.5
 
     # App

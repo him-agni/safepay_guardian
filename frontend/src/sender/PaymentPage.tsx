@@ -230,7 +230,7 @@ function StatusCard({
       )
 
     default:
-      // CREATED, AUTHORIZED, CAPTURING, VOIDING, CAPTURE_FAILED, VOID_FAILED
+      // CREATED, AUTHORIZED, CAPTURING, VOIDING, CAPTURE_FAILED, CAPTURE_PENDING, VOID_FAILED
       return (
         <section className="card result">
           {heading}

@@ -14,6 +14,7 @@ export type Status =
   | 'VOIDED'
   | 'EXPIRED'
   | 'CAPTURE_FAILED'
+  | 'CAPTURE_PENDING'
   | 'VOID_FAILED'
 
 export interface EvidenceSpan {

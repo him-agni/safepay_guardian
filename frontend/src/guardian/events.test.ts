@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { categoryLabel, decidedByWord, decisionWord, guardianStatusWord } from '../format'
+import { categoryLabel, decidedByWord, decisionWord, guardianStatusWord, senderStatusWord } from '../format'
 import type { Payment, PaymentEvent } from '../types'
 import { describeEvent } from './events'
 
@@ -49,6 +49,11 @@ describe('guardian wording', () => {
     expect(guardianStatusWord(p({ status: 'VOIDED' }))).toBe('Voided')
     expect(guardianStatusWord(p({ status: 'EXPIRED' }))).toBe('Timed out, voided')
     expect(guardianStatusWord(p({ status: 'CAPTURED' }))).toBe('Captured')
+  })
+
+  it('does not call a pending capture captured', () => {
+    expect(guardianStatusWord(p({ status: 'CAPTURE_PENDING' }))).toBe('Capture pending')
+    expect(senderStatusWord(p({ status: 'CAPTURE_PENDING' }))).toBe('Confirming')
   })
 
   it('says who decided', () => {

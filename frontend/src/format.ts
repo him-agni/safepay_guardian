@@ -47,6 +47,8 @@ export function senderStatusWord(p: Payment): string {
       return 'Stopped'
     case 'CAPTURE_FAILED':
       return 'Approved, not sent yet'
+    case 'CAPTURE_PENDING':
+      return 'Confirming'
     default:
       return 'In progress'
   }
@@ -118,6 +120,8 @@ export function guardianStatusWord(p: Payment): string {
       return 'Authorization failed'
     case 'CAPTURE_FAILED':
       return 'Capture failed'
+    case 'CAPTURE_PENDING':
+      return 'Capture pending'
     case 'VOID_FAILED':
       return 'Void failed'
     case 'CAPTURING':
