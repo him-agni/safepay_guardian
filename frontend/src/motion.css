@@ -1,0 +1,706 @@
+/*
+ * Motion for the Home page, plus a few light touches on the other screens.
+ *
+ * Rules:
+ *  - Only transform and opacity move (nothing that shifts the layout).
+ *  - Entrances use `backwards` fill, never `forwards`, so hover effects still work afterwards.
+ *  - "Reduce motion" (bottom of this file) turns every animation and transition off: the finished picture shows.
+ *  - The hero is always a dark panel in both themes, so its few fixed colours live here as tokens.
+ */
+
+:root {
+  --glow-1: #7b5cf5;
+  --glow-2: #c45ad9;
+  --glow-3: #f08a4b;
+  --shield-ink: #4a2fcf;
+  --ok: #1f8a4c;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(110%);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes float {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: translate(-6px, 1px);
+  }
+  50% {
+    transform: translate(6px, -2px);
+  }
+}
+@keyframes pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+@keyframes lock-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(196, 90, 217, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(196, 90, 217, 0);
+  }
+}
+@keyframes press {
+  40% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 7px rgba(168, 35, 26, 0.28);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes draw {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes dot-on {
+  from {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+}
+@keyframes drift {
+  50% {
+    transform: translate(16px, -20px) rotate(14deg);
+  }
+}
+
+/* ---------- hero: layout ---------- */
+
+.hero {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  row-gap: 2.2rem;
+}
+.hero-copy {
+  min-width: 0;
+}
+
+/* the headline: each line slides up out of a mask, the second line shimmers */
+.kinetic .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.kinetic .line > span {
+  display: inline-block;
+  animation: rise 0.85s var(--ease-out) backwards;
+}
+.kinetic .line:nth-of-type(2) > span {
+  animation-delay: 0.16s;
+}
+.hero h1 .glow-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--glow-1),
+    var(--glow-2),
+    var(--glow-3),
+    var(--glow-2),
+    var(--glow-1)
+  );
+  background-size: 200% 100%;
+  animation:
+    rise 0.85s var(--ease-out) 0.16s backwards,
+    shimmer 8s linear 1.2s infinite;
+}
+
+.hero-copy .eyebrow {
+  animation: fade-up 0.7s var(--ease-out) backwards;
+}
+.hero-lead {
+  max-width: 34rem;
+  margin: 0;
+  font-size: 1.22rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--night-ink);
+  animation: fade-up 0.8s var(--ease-out) 0.35s backwards;
+}
+.hero-copy .hero-actions {
+  animation: fade-up 0.8s var(--ease-out) 0.5s backwards;
+}
+.hero-copy .hero-note {
+  animation: fade-up 0.8s var(--ease-out) 0.65s backwards;
+}
+
+/* three plain promises under the hero, one per person plus the safety net */
+.hero-glance {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+.hero-glance li {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1.05rem 1.15rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.25s var(--ease-out),
+    background-color 0.25s,
+    border-color 0.25s;
+  animation: fade-up 0.8s var(--ease-out) backwards;
+}
+.hero-glance li:nth-child(1) {
+  animation-delay: 0.7s;
+}
+.hero-glance li:nth-child(2) {
+  animation-delay: 0.82s;
+}
+.hero-glance li:nth-child(3) {
+  animation-delay: 0.94s;
+}
+@media (hover: hover) {
+  .hero-glance li:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(255, 255, 255, 0.42);
+  }
+}
+.hero-glance h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.02rem;
+  color: #ffffff;
+}
+.hero-glance p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--night-muted);
+}
+.glance-icon {
+  flex-shrink: 0;
+  width: 2.7rem;
+  height: 2.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #ffffff;
+  background: var(--glow);
+}
+.glance-icon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* ---------- hero: the shield that watches the cursor ---------- */
+
+.hero-visual {
+  --lx: 0;
+  --ly: 0;
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+}
+.shield-scene {
+  width: min(14rem, 58%);
+  aspect-ratio: 1;
+  margin-bottom: -1.4rem;
+  animation: float 7s ease-in-out infinite;
+  pointer-events: none;
+}
+.shield-scene svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.layer {
+  transition: transform 0.35s var(--ease-out);
+}
+/* three depths, so the parts move by different amounts: the near parts most, the far glow the other way */
+.layer-far {
+  transform: translate(calc(var(--lx) * -14px), calc(var(--ly) * -14px));
+}
+.layer-mid {
+  transform: translate(calc(var(--lx) * 6px), calc(var(--ly) * 6px));
+}
+.layer-near {
+  transform: translate(calc(var(--lx) * 13px), calc(var(--ly) * 13px));
+}
+.keyhole {
+  transition: transform 0.25s var(--ease-out);
+  transform: translate(calc(var(--lx) * 2.6px), calc(var(--ly) * 2.6px));
+}
+/* no pointer to follow (touch screen): the lock sways gently instead */
+.shield-scene:not(.tracking) .layer-near {
+  animation: sway 6s ease-in-out infinite;
+}
+.stop-1 {
+  stop-color: var(--glow-1);
+}
+.stop-2 {
+  stop-color: var(--glow-2);
+}
+.stop-3 {
+  stop-color: var(--glow-3);
+}
+.halo-in {
+  stop-color: var(--glow-1);
+  stop-opacity: 0.55;
+}
+.halo-out {
+  stop-color: var(--glow-1);
+  stop-opacity: 0;
+}
+.orbit {
+  transform-origin: 120px 120px;
+  animation: spin 30s linear infinite;
+}
+.orbit-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 8;
+}
+.orbit-node {
+  fill: #ffffff;
+}
+.orbit-node.n1 {
+  fill: var(--glow-2);
+}
+.orbit-node.n3 {
+  fill: var(--glow-3);
+}
+.pulse-ring {
+  fill: none;
+  stroke: var(--glow-2);
+  stroke-width: 3;
+  transform-origin: 120px 122px;
+  animation: pulse 1.5s ease-out backwards;
+}
+.shield-body {
+  filter: drop-shadow(0 16px 26px rgba(8, 4, 30, 0.55));
+}
+.shield-inner {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.5;
+}
+.lock-body {
+  fill: #ffffff;
+}
+.lock-shackle {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.keyhole circle,
+.keyhole rect {
+  fill: var(--shield-ink);
+}
+
+/* ---------- hero: the story, a deck of cards ---------- */
+
+.story {
+  width: 100%;
+  max-width: 26rem;
+  position: relative;
+}
+.mock {
+  display: grid;
+  position: relative;
+  padding-top: 2.3rem;
+  font-size: 0.86rem;
+}
+.mock > .deck {
+  grid-area: 1 / 1;
+  align-self: end;
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.65s var(--ease-out),
+    opacity 0.5s ease,
+    filter 0.5s ease;
+}
+/* every card is the same height, so the cards behind show as an even edge and nothing jumps */
+.mock > .deck {
+  min-height: 7.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mock > .deck.mock-hold,
+.mock > .deck.mock-done {
+  flex-direction: row;
+  align-items: center;
+}
+.deck > * {
+  transition: opacity 0.35s ease;
+}
+/* behind the front card only its edge shows, not its words */
+.deck.back1 > *,
+.deck.back2 > *,
+.deck.gone > * {
+  opacity: 0;
+}
+.deck.ahead {
+  opacity: 0;
+  transform: translateY(2rem) scale(0.96);
+  pointer-events: none;
+}
+.deck.now {
+  z-index: 4;
+}
+.deck.back1 {
+  z-index: 3;
+  transform: translateY(-1.15rem) scale(0.95);
+  filter: brightness(0.8);
+}
+.deck.back2 {
+  z-index: 2;
+  transform: translateY(-2.2rem) scale(0.9);
+  filter: brightness(0.62);
+}
+.deck.gone {
+  opacity: 0;
+  z-index: 1;
+  transform: translateY(-3rem) scale(0.86);
+}
+.mock-bubble {
+  min-height: 3.5rem;
+}
+.mock-bubble mark {
+  background-color: transparent;
+  border-bottom-color: transparent;
+  transition:
+    background-color 0.6s,
+    border-bottom-color 0.6s;
+}
+.mock-bubble mark.lit {
+  background-color: var(--mark);
+  border-bottom-color: var(--mark-line);
+}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1px;
+  vertical-align: -0.18em;
+  background: var(--shield-ink);
+  animation: blink 0.9s steps(2) infinite;
+}
+.mock-hold.now .mock-lock {
+  animation: lock-pulse 1.8s ease-out infinite;
+}
+.mock-hold.now .mock-pill {
+  animation: pop 0.5s var(--ease-out) 0.35s backwards;
+}
+.mock-decline.press {
+  animation: press 0.55s ease-in-out 2.1s backwards;
+}
+.mock-done {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.mock-lock-ok {
+  background: var(--ok);
+}
+.mock-done.now .mock-lock {
+  animation: pop 0.5s var(--ease-out) 0.3s backwards;
+}
+
+.story-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.story-pill {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / 4);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(8, 4, 30, 0.4);
+  transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.2, 1);
+}
+.story-tabs button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.3rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--night-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.story-tabs button[aria-pressed='true'] {
+  color: #1b1442;
+}
+.story-tabs button:hover:not([aria-pressed='true']) {
+  color: #ffffff;
+}
+.story-num {
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.16);
+}
+.story-tabs button[aria-pressed='true'] .story-num {
+  color: #ffffff;
+  background: var(--shield-ink);
+}
+
+/* ---------- scroll reveals ---------- */
+
+.reveal:not(.in) {
+  opacity: 0;
+}
+.reveal.in {
+  animation: rise-in 0.75s var(--ease-out) backwards;
+}
+.reveal:not(.in) .stagger > * {
+  opacity: 0;
+}
+.reveal.in .stagger > * {
+  animation: rise-in 0.6s var(--ease-out) calc(var(--i, 0) * var(--step, 90ms)) backwards;
+}
+.stagger > :nth-child(1) { --i: 0; }
+.stagger > :nth-child(2) { --i: 1; }
+.stagger > :nth-child(3) { --i: 2; }
+.stagger > :nth-child(4) { --i: 3; }
+.stagger > :nth-child(5) { --i: 4; }
+.stagger > :nth-child(6) { --i: 5; }
+.stagger > :nth-child(7) { --i: 6; }
+.stagger > :nth-child(8) { --i: 7; }
+.stagger > :nth-child(9) { --i: 8; }
+.stagger > :nth-child(10) { --i: 9; }
+.stagger > :nth-child(11) { --i: 10; }
+.stagger > :nth-child(12) { --i: 11; }
+.faq.stagger {
+  --step: 45ms;
+}
+
+/* the path of a payment draws itself, its dots light up one after another */
+.reveal.in .flow::before {
+  transform-origin: top;
+  animation: draw 1.6s ease-out 0.2s backwards;
+}
+.reveal.in .flow > li .flow-dot {
+  animation: dot-on 0.5s ease-out calc(0.3s + var(--i, 0) * 0.14s) backwards;
+}
+
+/* ---------- hover and press ---------- */
+
+.audience-card,
+.trust-card,
+.steps li {
+  transition:
+    transform 0.25s var(--ease-out),
+    box-shadow 0.25s,
+    border-color 0.25s;
+}
+.icon-badge {
+  transition: transform 0.3s var(--ease-out);
+}
+@media (hover: hover) {
+  .audience-card:hover,
+  .trust-card:hover,
+  .steps li:hover {
+    transform: translateY(-5px);
+    border-color: var(--brand-line);
+    box-shadow: var(--shadow-lift);
+  }
+  .audience-card:hover .icon-badge,
+  .trust-card:hover .icon-badge {
+    transform: rotate(-7deg) scale(1.1);
+  }
+}
+.faq details[open] p {
+  animation: fade-up 0.35s ease-out;
+}
+.btn {
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s,
+    background-color 0.2s,
+    border-color 0.2s;
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.975);
+}
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.975);
+  }
+}
+
+/* ---------- the closing band ---------- */
+
+.cta-band {
+  position: relative;
+  overflow: hidden;
+}
+.cta-band > *:not(.drift) {
+  position: relative;
+  z-index: 1;
+}
+.drift {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.55;
+  animation: drift 10s ease-in-out infinite;
+}
+.drift.d1 {
+  left: 6%;
+  top: 22%;
+  width: 3.2rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--glow-1), var(--glow-3));
+}
+.drift.d2 {
+  right: 9%;
+  top: 16%;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  animation-delay: -3s;
+}
+.drift.d3 {
+  right: 20%;
+  bottom: 14%;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 4px;
+  background: var(--glow-2);
+  transform: rotate(45deg);
+  animation-delay: -6s;
+}
+
+/* ---------- light touches on the sender and guardian screens ---------- */
+
+.app-main > :not(.home) {
+  animation: page-in 0.4s var(--ease-out) backwards;
+}
+.result-head .badge {
+  animation: pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.1s backwards;
+}
+.queue-row {
+  transition:
+    transform 0.2s var(--ease-out),
+    box-shadow 0.2s;
+}
+@media (hover: hover) {
+  .queue-row:hover {
+    transform: translateX(4px);
+  }
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-glance {
+    grid-template-columns: 1fr;
+  }
+  .shield-scene {
+    width: min(11rem, 55%);
+  }
+  .hero-lead {
+    font-size: 1.1rem;
+  }
+}
+@media (max-width: 520px) {
+  .story-num {
+    display: none;
+  }
+  .story-tabs button {
+    font-size: 0.76rem;
+  }
+}
+
+/* ---------- reduce motion: show the finished picture, move nothing ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

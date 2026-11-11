@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
   ChartIcon,
   ClockIcon,
@@ -9,6 +9,8 @@ import {
   QuoteIcon,
   ShieldUpIcon,
 } from '../icons'
+import { Shield, Story } from './HeroScene'
+import { useCountUp, useInView, usePointerLook } from './motion'
 
 type Who = 'sender' | 'guardian'
 
@@ -78,8 +80,10 @@ function Section({ id, eyebrow, title, intro, center, children }: {
   center?: boolean
   children: ReactNode
 }) {
+  const ref = useRef<HTMLElement>(null)
+  const seen = useInView(ref, 0.08)
   return (
-    <section className="card section" aria-labelledby={`${id}-title`} id={id}>
+    <section ref={ref} className={`card section reveal${seen ? ' in' : ''}`} aria-labelledby={`${id}-title`} id={id}>
       <div className={`section-head${center ? ' center' : ''}`}>
         <span className="eyebrow">{eyebrow}</span>
         <h2 id={`${id}-title`}>{title}</h2>
@@ -91,16 +95,25 @@ function Section({ id, eyebrow, title, intro, center, children }: {
 }
 
 function Hero() {
+  const heroRef = useRef<HTMLElement>(null)
+  const visualRef = useRef<HTMLDivElement>(null)
+  const tracking = usePointerLook(heroRef, visualRef)
+  const [stage, setStage] = useState(0)
   return (
-    <section className="hero" aria-labelledby="hero-title">
-      <div>
-        <span className="eyebrow">Payment protection for families</span>
-        <h1 id="hero-title">
-          A second look <span className="glow-text">before money leaves.</span>
+    <section className="hero" aria-labelledby="hero-title" ref={heroRef}>
+      <div className="hero-copy">
+        <span className="eyebrow">Payment protection for senders and guardians</span>
+        <h1 id="hero-title" className="kinetic">
+          <span className="line">
+            <span>A second look</span>
+          </span>{' '}
+          <span className="line">
+            <span className="glow-text">before money leaves.</span>
+          </span>
         </h1>
-        <p className="hero-sub">
-          SafePay Guardian checks a payment and the message behind it. If it looks like a scam, the payment waits on
-          hold until someone you trust has looked. No money moves until it is decided.
+        <p className="hero-lead">
+          Checks every payment and the message behind it, holds anything that looks like a scam, and lets someone you
+          trust decide before any money moves.
         </p>
         <div className="hero-actions">
           <a className="btn btn-primary" href="#/send">
@@ -113,34 +126,41 @@ function Hero() {
         <p className="hero-note">Built on the PayPal sandbox: test money only.</p>
       </div>
 
-      {/* A picture of the product, not a working control: the same story the steps below tell in words. */}
-      <div className="mock" aria-hidden="true">
-        <div className="mock-card">
-          <span className="mock-from">Text message</span>
-          <div className="mock-bubble">
-            This is the bank <mark>fraud team</mark>. Move your savings to a <mark>protected account</mark>{' '}
-            <mark>today</mark>.
-          </div>
-        </div>
-        <div className="mock-card mock-hold">
-          <span className="mock-lock">
-            <LockIcon />
+      {/* Pictures, not working controls (apart from the step buttons): the sections below tell the same story in words. */}
+      <div className="hero-visual" ref={visualRef}>
+        <Shield pulse={stage} tracking={tracking} />
+        <Story onStage={setStage} />
+      </div>
+
+      <ul className="hero-glance" aria-label="What SafePay Guardian does for each person">
+        <li>
+          <span className="glance-icon" aria-hidden="true">
+            <PersonIcon />
           </span>
           <div>
-            <strong>$300.00 is on hold</strong>
-            <div>Waiting for your guardian</div>
+            <h2>For the sender</h2>
+            <p>Pay as usual. If a payment looks like a scam you see why, in plain words, and it waits instead of going.</p>
           </div>
-          <span className="mock-pill">High risk</span>
-        </div>
-        <div className="mock-card">
-          <strong>Daniel, your guardian</strong>
-          <div>"This is not your bank. Do not move any money."</div>
-          <div className="mock-buttons">
-            <span className="mock-decline">Decline</span>
-            <span className="mock-approve">Approve</span>
+        </li>
+        <li>
+          <span className="glance-icon" aria-hidden="true">
+            <GuardianIcon />
+          </span>
+          <div>
+            <h2>For the guardian</h2>
+            <p>Hear only about the payments that matter, with the exact words that worried us. Ask, then approve or decline.</p>
           </div>
-        </div>
-      </div>
+        </li>
+        <li>
+          <span className="glance-icon" aria-hidden="true">
+            <ShieldUpIcon />
+          </span>
+          <div>
+            <h2>Safe by design</h2>
+            <p>Money is reserved, never sent early. No answer means cancelled. The AI can add caution, never remove it.</p>
+          </div>
+        </li>
+      </ul>
     </section>
   )
 }
@@ -159,7 +179,7 @@ function HowToUse() {
         ))}
       </div>
       <div role="tabpanel" id="steps-panel" aria-labelledby={`tab-${who}`}>
-        <ol className="steps">
+        <ol className="steps stagger" key={who}>
           {STEPS[who].map((s) => (
             <li key={s.title}>
               <h3>{s.title}</h3>
@@ -201,7 +221,7 @@ function HowItWorks() {
           </li>
         </ul>
 
-        <ol className="flow" aria-label="The path of a payment">
+        <ol className="flow stagger" aria-label="The path of a payment">
           <li>
             <span className="flow-dot" aria-hidden="true" />
             You press Send for check
@@ -246,6 +266,21 @@ function HowItWorks() {
   )
 }
 
+function CountStat({ to }: { to: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const n = useCountUp(to, ref)
+  return (
+    <div className="trust-stat" ref={ref}>
+      <span className="sr-only">
+        {to} of {to}
+      </span>
+      <span aria-hidden="true">
+        {n} of {to}
+      </span>
+    </div>
+  )
+}
+
 const TRUST = [
   { icon: <LockIcon />, title: 'Nothing is sent early', text: 'Payments are authorized, not captured, until you, your guardian or the low-risk check says go.' },
   { icon: <ClockIcon />, title: 'Silence is safe', text: 'If nobody answers before the hold runs out, the payment is cancelled. Waiting never sends money.' },
@@ -258,12 +293,12 @@ function WhyTrust() {
   return (
     <Section id="why-trust" eyebrow="Why trust it" title="Built to fail safe" center
       intro="Designed so that a mistake means a short wait, never lost money.">
-      <div className="trust">
+      <div className="trust stagger">
         <div className="trust-card">
           <span className="icon-badge" aria-hidden="true">
             <ChartIcon />
           </span>
-          <div className="trust-stat">46 of 46</div>
+          <CountStat to={46} />
           <h3>Scams flagged in testing</h3>
           <p>
             On 69 test cases it never saw during tuning, including real scam texts, every scam was at least flagged and
@@ -291,7 +326,7 @@ export function HomePage() {
 
       <Section id="who" eyebrow="Who it is for" title="For people who send money, and the people who look out for them"
         intro="Scammers pretend to be banks, the government, a grandchild or a friend, and they push people to pay fast. SafePay Guardian adds a calm pause and a trusted second opinion.">
-        <div className="audience">
+        <div className="audience stagger">
           <div className="audience-card">
             <span className="icon-badge" aria-hidden="true">
               <PersonIcon />
@@ -324,7 +359,7 @@ export function HomePage() {
       <WhyTrust />
 
       <Section id="faq" eyebrow="Questions" title="Common questions" center>
-        <div className="faq">
+        <div className="faq stagger">
           {FAQS.map((f) => (
             <details key={f.q}>
               <summary>{f.q}</summary>
@@ -335,6 +370,9 @@ export function HomePage() {
       </Section>
 
       <section className="cta-band" aria-labelledby="cta-title">
+        <span className="drift d1" aria-hidden="true" />
+        <span className="drift d2" aria-hidden="true" />
+        <span className="drift d3" aria-hidden="true" />
         <h2 id="cta-title">See it for yourself</h2>
         <p>Send a test payment with a scam message, then switch sides and decide as the guardian.</p>
         <div className="hero-actions">
