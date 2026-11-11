@@ -12,6 +12,9 @@ Rules this module enforces:
     arrives after it cannot capture even if the sweeper has not run yet.
   * A payment is CAPTURED only when PayPal says the capture is settled (COMPLETED). A PENDING capture is
     CAPTURE_PENDING and is re-read until it settles; DECLINED or FAILED goes to CAPTURE_FAILED.
+  * An authorization PayPal never answered (timeout, 5xx) is not a failure: PayPal may have authorized it.
+    The payment stays CREATED and the sweeper retries with the same request id, which returns the same
+    order, until auth_give_up_seconds. Only a definite refusal (4xx) fails it straight away.
   * Every state change and every PayPal call writes a row to `events` (the audit log).
 """
 
@@ -188,6 +191,15 @@ def status_text(status: str, void_reason: str | None) -> dict:
     }
     st = S(status)
     return {"sender": sender[st], "guardian": guardian[st]}
+
+
+def _status_text_for(status: Status, row: sqlite3.Row) -> dict:
+    text = status_text(status.value, row["void_reason"])
+    if status == S.CREATED and row["last_error"]:
+        text["sender"] = ("PayPal is taking longer than usual to answer. We are still trying. "
+                          "Nothing has been sent.")
+        text["guardian"] = "PayPal has not answered the authorization yet. It is retried with the same request id."
+    return text
 
 
 def _hold_expired(row: sqlite3.Row) -> bool:
@@ -410,10 +422,13 @@ class PaymentService:
                 description=f"SafePay Guardian payment to {payee['name']}",
             ))
         except GatewayError as exc:
-            self._transition(payment_id, {S.CREATED}, S.AUTH_FAILED, "system",
-                             {"last_error": exc.message}, ("paypal.authorization_failed", exc.as_detail()))
+            if exc.kind == "client":  # PayPal said no: a definite answer
+                self._transition(payment_id, {S.CREATED}, S.AUTH_FAILED, "system",
+                                 {"last_error": exc.message}, ("paypal.authorization_failed", exc.as_detail()))
+            else:  # no answer: PayPal may or may not have authorized it
+                self._authorization_unsure(payment_id, row, exc)
             return
-        self._transition(
+        claimed, _ = self._transition(
             payment_id, {S.CREATED}, S.AUTHORIZED, "system",
             {"paypal_order_id": order.order_id, "paypal_authorization_id": order.authorization_id,
              "hold_expires_at": db.iso_in(self.settings.hold_timeout_seconds)},
@@ -422,7 +437,24 @@ class PaymentService:
                                    "request_id": request_id(payment_id, "create"),
                                    "paypal_debug_id": order.debug_id}),
         )
-        self._route(payment_id)
+        if claimed:  # a second resume of the same payment must not route it again
+            self._route(payment_id)
+
+    def _authorization_unsure(self, payment_id: str, row: sqlite3.Row, exc: GatewayError) -> None:
+        """PayPal did not answer. Keep the payment CREATED so the same request id is tried again; give up late."""
+        age = (db.utcnow() - db.parse_iso(row["created_at"])).total_seconds()
+        if age >= self.settings.auth_give_up_seconds:
+            self._transition(
+                payment_id, {S.CREATED}, S.AUTH_FAILED, "system",
+                {"last_error": f"PayPal did not answer in time ({exc.message}). If it reserved an amount, "
+                               "that reservation expires by itself."},
+                ("paypal.authorization_gave_up", {**exc.as_detail(), "seconds": int(age)}))
+            return
+        with self._conn() as conn, db.transaction(conn):
+            conn.execute("UPDATE payments SET updated_at = ?, last_error = ? WHERE id = ? AND status = 'CREATED'",
+                         (db.iso(db.utcnow()), exc.message, payment_id))
+            db.add_event(conn, payment_id, "system", "paypal.authorization_uncertain",
+                         {**exc.as_detail(), "retry_with_same_request_id": request_id(payment_id, "create")})
 
     def _route(self, payment_id: str) -> None:
         with self._conn() as conn:
@@ -687,6 +719,11 @@ class PaymentService:
                     "SELECT id FROM payments WHERE status = 'VOID_FAILED' AND updated_at <= ?",
                     (db.iso(now - timedelta(seconds=self.settings.void_retry_seconds)),),
                 )]
+                unanswered = [r["id"] for r in conn.execute(
+                    "SELECT id FROM payments WHERE status = 'CREATED' AND last_error IS NOT NULL "
+                    "AND updated_at <= ?",
+                    (db.iso(now - timedelta(seconds=self.settings.auth_retry_seconds)),),
+                )]
                 pending = [r["id"] for r in conn.execute(
                     "SELECT id FROM payments WHERE status = 'CAPTURE_PENDING' AND updated_at <= ?",
                     (db.iso(now - timedelta(seconds=self.settings.capture_recheck_seconds)),),
@@ -706,12 +743,14 @@ class PaymentService:
                     self._decide(pid, ACTIONS["retry_void"], actor="system")
                 except Conflict:
                     pass
+            for pid in unanswered:
+                self._resume(pid, S.CREATED)
             for pid in pending:
                 self._reconcile_capture(pid)
             for pid, status in stuck:
                 self._resume(pid, S(status))
             return {"expired": len(expired), "void_retried": len(void_failed), "resumed": len(stuck),
-                    "capture_checked": len(pending)}
+                    "capture_checked": len(pending), "authorization_retried": len(unanswered)}
         finally:
             self._sweep_lock.release()
 
@@ -1038,7 +1077,7 @@ def _serialize(row: sqlite3.Row) -> dict:
         "category": row["category"] if "category" in row.keys() else None,
         "screenshot_url": f"/screenshots/{row['screenshot_path']}" if row["screenshot_path"] else None,
         "final": status in TERMINAL,
-        "text": status_text(status.value, row["void_reason"]),
+        "text": _status_text_for(status, row),
         "can": {
             "confirm": status in ACTIONS["confirm"].allowed_from,
             "cancel": status in ACTIONS["cancel"].allowed_from,
