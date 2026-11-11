@@ -7,7 +7,9 @@ Rules this module enforces:
     it captured, voided or expired, we record that instead of calling again.
   * PayPal-Request-Ids are deterministic ({payment_id}-capture-{attempt}). Network and 5xx retries
     reuse the id; only a definite 4xx rejection moves to the next attempt number.
-  * Silence fails safe: WARNED, HELD and CAPTURE_FAILED payments are voided when the hold expires.
+  * Silence fails safe: WARNED, HELD and CAPTURE_FAILED payments are voided when the hold expires. The
+    deadline is also checked inside the same transaction that claims a capture, so an approval that
+    arrives after it cannot capture even if the sweeper has not run yet.
   * A payment is CAPTURED only when PayPal says the capture is settled (COMPLETED). A PENDING capture is
     CAPTURE_PENDING and is re-read until it settles; DECLINED or FAILED goes to CAPTURE_FAILED.
   * Every state change and every PayPal call writes a row to `events` (the audit log).
@@ -119,15 +121,17 @@ class Action:
     allowed_from: frozenset
     void_reason: str | None = None
     records_decision: bool = True
+    enforces_deadline: bool = False  # a capture that comes after the hold deadline is refused
 
 
 ACTIONS = {
     a.name: a
     for a in (
         Action("auto_capture", "system", "capture", frozenset({S.AUTHORIZED}), records_decision=False),
-        Action("confirm", "sender", "capture", frozenset({S.WARNED})),
-        Action("approve", "guardian", "capture", frozenset({S.HELD})),
-        Action("retry_capture", "guardian", "capture", frozenset({S.CAPTURE_FAILED}), records_decision=False),
+        Action("confirm", "sender", "capture", frozenset({S.WARNED}), enforces_deadline=True),
+        Action("approve", "guardian", "capture", frozenset({S.HELD}), enforces_deadline=True),
+        Action("retry_capture", "guardian", "capture", frozenset({S.CAPTURE_FAILED}), records_decision=False,
+               enforces_deadline=True),
         Action("cancel", "sender", "void", frozenset({S.WARNED, S.HELD}), void_reason="sender_cancel"),
         Action("decline", "guardian", "void", frozenset({S.HELD, S.CAPTURE_FAILED}),
                void_reason="guardian_decline"),
@@ -184,6 +188,12 @@ def status_text(status: str, void_reason: str | None) -> dict:
     }
     st = S(status)
     return {"sender": sender[st], "guardian": guardian[st]}
+
+
+def _hold_expired(row: sqlite3.Row) -> bool:
+    """True once a hold has run past its deadline (the sweeper may not have voided it yet)."""
+    expires = row["hold_expires_at"]
+    return bool(expires) and db.parse_iso(expires) <= db.utcnow()
 
 
 def _conflict_reason(row: sqlite3.Row) -> str:
@@ -253,14 +263,18 @@ class PaymentService:
         actor: str,
         fields: dict | None = None,
         event: tuple[str, dict] | None = None,
+        guard: Callable[[sqlite3.Row], bool] | None = None,
     ) -> tuple[bool, sqlite3.Row]:
         """Atomically move a payment from one of `from_statuses` to `to`.
 
+        `guard`, if given, is checked on the row inside the same transaction; if it says no, nothing changes.
         Returns (True, row_before) if this call made the change, or (False, current_row).
         """
         with self._conn() as conn, db.transaction(conn):
             row = self._row(conn, payment_id)
             if S(row["status"]) not in from_statuses:
+                return False, row
+            if guard is not None and not guard(row):
                 return False, row
             values = {"status": to.value, "updated_at": db.iso(db.utcnow()), **(fields or {})}
             assignments = ", ".join(f"{k} = ?" for k in values)
@@ -442,8 +456,20 @@ class PaymentService:
         if action.void_reason:
             fields["void_reason"] = action.void_reason
 
-        claimed, row = self._transition(payment_id, action.allowed_from, in_flight, actor, fields,
-                                        ("decision.accepted", {"action": action.name, "note": note}))
+        claimed, row = self._transition(
+            payment_id, action.allowed_from, in_flight, actor, fields,
+            ("decision.accepted", {"action": action.name, "note": note}),
+            guard=(lambda r: not _hold_expired(r)) if action.enforces_deadline else None,
+        )
+        if not claimed and action.enforces_deadline and S(row["status"]) in action.allowed_from:
+            # The hold ran out before this decision arrived and the sweeper has not got to it yet: void it now.
+            self._event(payment_id, actor, "decision.too_late", {"action": action.name})
+            try:
+                self._decide(payment_id, ACTIONS["timeout"])
+            except Conflict:
+                pass
+            with self._conn() as conn:
+                row = self._row(conn, payment_id)
         if not claimed:
             return self._unclaimed(payment_id, action, actor, row)
         if action.kind == "capture":
