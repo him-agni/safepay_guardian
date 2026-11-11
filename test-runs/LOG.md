@@ -4,6 +4,20 @@ Newest first. Modes: **sandbox + Gemini** (real PayPal sandbox, live AI), **demo
 
 ---
 
+## 2026-11-10 · Browser · Animated Home page
+
+- **Run by:** Claude, headless Edge driven over the DevTools protocol, dev server on port 5174 (the Home page needs no backend).
+- **Checked:**
+  - Hero at desktop width over time: headline slides up, scam text types itself, then the four steps (Message, On hold, Guardian, Decided) came forward one after another as a card deck; the step tracker pill slid with them.
+  - Cursor: moving the pointer to the top left of the hero set the look to (-0.89, -0.83) and the lock moved (-11.6, -10.8) px; bottom right gave (0.87, 0.19) and (11.3, 2.4) px.
+  - Full page in light and dark after scrolling through it: sections reveal, "46 of 46" counts up and lands exactly, FAQ and flow render.
+  - Reduce motion on: every section visible at once, no animation running, story rests on "Decided", count shows 46 of 46.
+  - Phone width (400 px): hero stacks in one column, story and step buttons fit.
+- **Found and fixed during the run:** the new hero grid rule overrode the old phone rule, so the hero stayed two columns and squeezed the text; the cards behind the front card were taller and their words showed through (now equal height, words hidden behind the front card); an eyebrow line wrapped to two lines.
+- **Not checked:** touch devices (no pointer emulation here): on those the cursor effect is off by design and the lock sways instead.
+- **Screenshots:** [story steps](screenshots/2026-11-10-home-hero-story-steps.png), [phone](screenshots/2026-11-10-home-hero-phone.png), [reduced motion](screenshots/2026-11-10-home-hero-reduced-motion.png).
+- **Verdict:** Pass.
+
 ## 2026-11-10 · Judge · Redesign: light and dark mode, Home page
 
 - **Run by:** Claude, on a separate port and database.
